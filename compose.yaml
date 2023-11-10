@@ -1,0 +1,48 @@
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: projekt-zaliczeniowy
+    command: python manage.py runserver
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=your_project_name.settings
+    networks:
+      - projekt-zaliczeniowy
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - projekt-zaliczeniowy
+
+  daphne:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: daphne
+    command: daphne projekt-zaliczeniowy:application
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=projekt-zaliczeniowy.settings
+    networks:
+      - projekt-zaliczeniowy
+
+networks:
+  your_network_name:
+    driver: bridge
+

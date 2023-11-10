@@ -6,6 +6,31 @@
     <title>Document</title>
 </head>
 <body>
+    <button onclick="onClick()">Press me</button>
+    <textarea id="chat-log" cols="100" rows="20"></textarea>
+    <script>
+        const p = document.getElementById("chat-log");
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/test/'
+        );
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log(data);
+            document.querySelector('#chat-log').value += (data.test + '\n');
+        };
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+        function onClick(){
+            chatSocket.send(JSON.stringify({
+                'test':'help'
+            }))
+        }
+    </script>
+
+    <p id="test"></p>
     
 </body>
 </html>
