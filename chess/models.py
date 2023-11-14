@@ -3,7 +3,8 @@ from django.db import models
 # Create your models here.
 class Games(models.Model):
     pass
-
+#on_delete=models.SET_NULL,
+#null=True
 class Users(models.Model):
     username = models.CharField(max_length=16)
     password = models.CharField(max_length=16)
