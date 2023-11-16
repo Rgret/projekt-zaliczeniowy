@@ -1,0 +1,33 @@
+.board-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    max-height: 450px;
+    max-width: 450px;
+    min-height: 450px;
+    min-width: 450px;
+}
+
+.board-space {
+    min-height: 50px;
+    min-width: 50px;
+    margin:-1px;
+    padding:0;
+    float:left;
+    border:1px solid gray;
+    background-color: whitesmoke;
+}
+
+.inRange {
+    background-color: aqua;
+}
+
+.selected {
+    background-color: green;
+}
+
+.board-space:hover {
+    background-color: yellowgreen;
+}
