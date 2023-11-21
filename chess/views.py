@@ -5,4 +5,4 @@ def index(request):
     return render(request, 'chess/index.html')
 
 def game(request, id):
-    return render(request, 'game/game.html')
+    return render(request, 'game/game.html', {"game_id" : id})
