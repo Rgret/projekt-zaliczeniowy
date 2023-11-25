@@ -35,7 +35,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         data_type = data["type"]
 
-        print(data_type)
+        #print(data_type)
 
         if(data_type == "test"):
             await self.channel_layer.group_send(

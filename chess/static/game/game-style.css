@@ -33,8 +33,35 @@
     background-color: yellowgreen;
 }
 
+.ATK {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    margin-right: -50%;
+    transform: translate(-50%, 5%);
+    pointer-events: none;
+}
+
+.HP {
+    position: absolute;
+    top: 10%;
+    left: 83%;
+    margin-right: -45%;
+    transform: translate(-50%, 5%);
+    pointer-events: none;
+}
+
+.toAttack {
+    background-color: red;
+}
+
+.attackOnly {
+    background-color: rgba(255, 174, 120, 0.5);
+}
 
 .image {
+    max-width: 45px;
+    max-height: 45px;
     position: relative;
     top: 50%;
     left: 50%;
