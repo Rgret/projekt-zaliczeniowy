@@ -22,6 +22,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             "bottom": (int)((random.random()*10)%10),
             "enemy1": (int)((random.random()*100-50)%10),
             "enemy2": (int)((random.random()*100-50)%10),
+            "topCastle": 9,
+            "bottomCastle": 81,
             }))
         else:
             print("loaded board")

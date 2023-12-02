@@ -28,11 +28,6 @@
 .selected {
     background-color: green;
 }
-
-.board-space:hover {
-    background-color: yellowgreen;
-}
-
 .ATK {
     position: absolute;
     top: 10%;
@@ -52,11 +47,19 @@
 }
 
 .toAttack {
-    background-color: red;
+    background-color: rgba(255, 174, 120, 0.5);
 }
 
 .attackOnly {
-    background-color: rgba(255, 174, 120, 0.5);
+    background-color: red;
+}
+
+.spawnableTile {
+    background-color: yellowgreen;
+}
+
+.hoverOverTargets {
+    background-color: purple;
 }
 
 .image {
@@ -68,4 +71,10 @@
     margin-right: -50%;
     transform: translate(-50%, 5%);
     pointer-events: none;
+}
+
+.Container {
+    min-width: 50px;
+    min-height: 50px;
+    background-color: yellowgreen;
 }
