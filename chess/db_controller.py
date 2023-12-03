@@ -23,3 +23,17 @@ def selectGames(i = 0):
         return Games.objects.get(id = i)
     else:
         return Games.objects.all()
+
+
+def get_lobbies_data():
+    lobbies_data = []
+    lobbies = Lobbies.objects.all()
+
+    for lobby in lobbies:
+        lobby_info = {
+            'id': lobby.id_game.id if lobby.id_game else None,
+            'players': lobby.id_users.id if lobby.id_users else None
+        }
+        lobbies_data.append(lobby_info)
+
+    return lobbies_data

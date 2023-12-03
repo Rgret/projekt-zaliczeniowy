@@ -1,0 +1,51 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#lobbyContainer {
+    display: flex;
+    width: 100%;
+}
+
+#leftPanel {
+    background-color: #333;
+    color: white;
+    width: 33.33%;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: width 0.5s;
+}
+
+#rightPanel {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.lobbyItem {
+    cursor: pointer;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #444;
+    color: white;
+    border-radius: 5px;
+}
+
+#toggleButton {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+}
+
+#actionButtons button {
+    margin-right: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
