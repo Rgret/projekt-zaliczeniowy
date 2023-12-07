@@ -99,11 +99,14 @@ class Entity {
     hit(dmg){
         this.stats.currentHP -= dmg;
     }
+    endTurn(){
+        return false;
+    }
 }
-
 
 class Pawn extends Entity{
     Type = "Pawn"
+    Name = "Pawn"
     stats = {
         range: 6,
         maxHP: 10,
@@ -118,7 +121,7 @@ class Pawn extends Entity{
 
     InitRange(tile) {
         this.inRange = selectInRange(tile, this.stats.range, true, {movable: !this.moved});
-        this.attkRange = crossSelector(tile, !this.attacked, {attackOnly: !this.attacked});
+        this.attkRange = crossSelector(tile, true, {attackOnly: !this.attacked});
     }
     attackPattern(tile) {
         return tile
@@ -126,12 +129,19 @@ class Pawn extends Entity{
 }
 
 class Castle extends Entity {
-    Type = "Castle"
+    Type = "Building"
+    Name = "Castle"
+    gains = {
+        gold: 10
+    }
     constructor(options = {}){
         super(options)
         Object.assign(this, options);
         this.IMG.src = ""
         this.DOM.classList += " Castle"
+    }
+    get gains(){
+        return this.gains;
     }
     InitRange(tile) {
         this.inRange = undefined;
@@ -139,5 +149,8 @@ class Castle extends Entity {
     }
     attackPattern(tile) {
         return tile
+    }
+    endTurn() {
+        return gains
     }
 }

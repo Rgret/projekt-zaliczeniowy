@@ -1,29 +1,6 @@
 from .models import *
-
-#returns all objects in Users table
-#or specific one if given id
-def selectUsers(i = 0):
-    if(i!=0):
-        return Users.objects.get(id = i)
-    else:
-        return Users.objects.all()
-
-#returns all objects in Lobbies table
-#or specific one if given id 
-def selectLobbies(i = 0):
-    if(i!=0):
-        return Lobbies.objects.get(id = i)
-    else:
-        return Lobbies.objects.all()
-
-#returns all objects in Games table
-#or specific one if given id
-def selectGames(i = 0):
-    if(i!=0):
-        return Games.objects.get(id = i)
-    else:
-        return Games.objects.all()
-
+from django.db.models import Max
+from channels.db import database_sync_to_async
 
 def get_lobbies_data():
     lobbies_data = []
@@ -32,8 +9,30 @@ def get_lobbies_data():
     for lobby in lobbies:
         lobby_info = {
             'id': lobby.id_game.id if lobby.id_game else None,
-            'players': lobby.id_users.id if lobby.id_users else None
+            'players': lobby.id_host.id if lobby.id_host else None
         }
         lobbies_data.append(lobby_info)
 
     return lobbies_data
+
+# return next id of Games
+# curently useless and let's keep it that way
+@database_sync_to_async
+def next_Games_id():
+    result  = Lobbies.objects.aggregate(max_id=Max('id'))
+    last_id = result['max_id']
+
+    if last_id is not None:
+        return last_id+1
+    else:
+        # If the table is empty, return 1
+        return 1
+def sync_next_Games_id():
+    result  = Lobbies.objects.aggregate(max_id=Max('id'))
+    last_id = result['max_id']
+
+    if last_id is not None:
+        return last_id+1
+    else:
+        # If the table is empty, return 1
+        return 1

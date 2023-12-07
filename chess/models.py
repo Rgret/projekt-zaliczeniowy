@@ -14,4 +14,5 @@ class Users(models.Model):
 
 class Lobbies(models.Model):
     id_game = models.ForeignKey(Games, on_delete=models.SET_NULL, null=True)      
-    id_users = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True)       
+    id_host = models.ForeignKey(Users, on_delete=models.SET_NULL, null= True, related_name="host")
+    id_player = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, related_name="player")

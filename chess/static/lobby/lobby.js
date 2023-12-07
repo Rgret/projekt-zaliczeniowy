@@ -6,8 +6,7 @@ const leftPanel = document.getElementById('leftPanel');
 // Dummy data
 const lobbies = [
   { id: 1, players: 4 },
-  { id: 2,  players: 2 },
-  
+  { id: 2,  players: 2 }, 
 ];
 
 // Populate the lobby list

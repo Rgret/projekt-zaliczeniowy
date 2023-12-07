@@ -11,6 +11,16 @@
 </head>
 <body>
     <div class="grid board-container"></div>
+    <div class="detailsPanel">
+        <h2 class="detailsName">Building Panel</h2>
+        <hr>
+        <p> Atk <a class="detailsAtk"></a></p>
+        <p> HP <a class="detailsHPCurrent"></a>/<a class="detailsHPMax"></a></p>
+        <hr>
+        <div class="buildingMenu"></div>
+        <hr>
+    </div>
+    <button class="endTurn" onclick="endTurn()">End Turn</button>
     <script src="{% static 'game/game.js' %}"></script>
     <script src="{% static 'game/classes.js' %}"></script>
     <script src="{% static 'game/selectors.js' %}"></script>

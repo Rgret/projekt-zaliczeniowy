@@ -1,6 +1,7 @@
 const boardContainer = document.querySelector(".board-container")
 let selected = undefined;
 let mode = null;
+let turn = true;
 let hovering = true;
 let board = [];
 let id = 0;
@@ -17,7 +18,6 @@ const chatSocket = new WebSocket(
     + gameId
     + '/'
 );
-
 
 // change to support multiple board sizes
 for(let i=1;i<10;i++){
@@ -57,6 +57,7 @@ chatSocket.onmessage = function(e) {
             board[0].contains = new Castle({owner: "Top"});
             board[board.length - 1].contains = new Castle({owner: "Bottom"});
             regenBoard()
+            sendBoard()
         break;
         case ("move"):
             // can stay for now
@@ -65,11 +66,14 @@ chatSocket.onmessage = function(e) {
             selected = undefined;
             regenBoard()
         break;
+        case ("newTurn"):
+            if(data.player != player.team) turn = true;
+        break;
         case ("regenBoard"):
             // can stay for now
             for( let i = 0; i<board.length;i++ ){
                 if( data.board[i].contains != null ){
-                    switch(data.board[i].contains.Type){
+                    switch(data.board[i].contains.Name){
                         case "Pawn":
                             let pawn = new Pawn({ enemy: data.board[i].contains.enemy, 
                                 moved: data.board[i].contains.moved,
@@ -85,6 +89,7 @@ chatSocket.onmessage = function(e) {
                                 attacked: data.board[i].contains.attacked,
                                 stats: data.board[i].contains.stats,
                                 owner: data.board[i].contains.owner,
+                                gains: data.board[i].contains.gains,
                             });
                             board[i].contains = castle
                         break;
@@ -104,25 +109,24 @@ chatSocket.onmessage = function(e) {
 };
 
 //#
-//  is good now
+//  is kinda good now
 //#
 function spaceClick(e) {
     let target = board[e.target.id];
-    console.log(target)
-    switch (mode){
-        default:
-            // fill pawns inRange if empty
-            if(target.contains != null && selected == undefined && target.contains.owner == player.team){
-                selected = target;
-                if (selected.contains.inRange == null){
-                    selected.contains.InitRange(selected)
-                }
-                if(selected.contains.inRange != undefined) hilight(selected.contains.inRange);
-                hilight(selected.contains.attkRange);
-            }
-
+    //console.log(target)
+    // fill pawns inRange if empty
+    if(target.contains != null && selected == undefined && target.contains.owner == player.team){
+        selected = target;
+        if (selected.contains.inRange == null){
+            selected.contains.InitRange(selected)
+        }
+        if(selected.contains.inRange != undefined) hilight(selected.contains.inRange);
+        hilight(selected.contains.attkRange);
+    }
+    switch (selected.contains.Type) {
+        case "Pawn":
             // move
-            else if(target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved && selected.contains.owner == player.team && selected.contains.Type != "Castle"){
+            if(turn && target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved && selected.contains.owner == player.team && selected.contains.Type != "Building"){
                 let x = document.getElementById(selected.button.id);
                 if(x.firstChild){
                     x.removeChild(x.firstChild)
@@ -136,9 +140,9 @@ function spaceClick(e) {
                 removeHilight()
                 regenBoard()
             }
-
+        
             // attack
-            else if(target.button.classList.contains("attackOnly") && !selected.contains.attacked && selected.contains.owner != target.contains.owner) {
+            else if(turn && target.button.classList.contains("attackOnly") && !selected.contains.attacked && selected.contains.owner != target.contains.owner ) {
                 if(selected.contains.attkRange == null) selected.contains.InitRange(selected);
                 let targets = selected.contains.attackPattern(target)
                 console.log(targets)
@@ -149,7 +153,7 @@ function spaceClick(e) {
                             e.contains.hit(selected.contains.stats.ATK)     
                             let hpLabel = e.button.querySelector(".HP")
                             hpLabel.text = e.contains.currentHP
-
+        
                             if(e.contains.currentHP <= 0){
                                 delete e.contains
                             }
@@ -160,7 +164,7 @@ function spaceClick(e) {
                         target.contains.hit(selected.contains.stats.ATK)     
                         let hpLabel = target.button.querySelector(".HP")
                         hpLabel.text = target.contains.currentHP
-
+        
                         if(target.contains.currentHP <= 0){
                             delete target.contains
                         }
@@ -168,19 +172,55 @@ function spaceClick(e) {
                 }
             
                 selected.contains.attacked = true;
+                selected.contains.InitRange(selected)
                 removeHilight()
                 regenBoard()
-            }
-
-            // 
-            else { 
+            }else if(target != selected) { 
                 selected = undefined;
                 removeHilight()
             } 
-            regenBoard()
-            sendBoard()
+        break;
+        case "Building":
+            let detailsPanel = document.querySelector(".detailsPanel")
+            detailsPanel.style.left = '0px'
+            detailsPanel.querySelector(".detailsAtk").innerHTML = selected.contains.stats.ATK;
+            detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.currentHP;
+            detailsPanel.querySelector(".detailsHPMax").innerHTML = selected.contains.stats.maxHP;
+            if (target.button.classList.contains("spawnableTile")){
+                console.log("castle")
+            }else if(target != selected) { 
+                detailsPanel.style.left = '-30%'
+                selected = undefined;
+                removeHilight()
+            } 
+        break;
+        default:
+            { 
+                selected = undefined;
+                removeHilight()
+            } 
         break;
     }
+    regenBoard()
+    sendBoard()
+}
+
+function endTurn(){
+    if (!turn) return;
+    turn = false;
+    chatSocket.send(JSON.stringify({
+        'type':'endTurn',
+        'player': player.team
+    }))
+    board.forEach(e => {
+        if(e.contains != null && e.contains.owner == player.team){
+            let gains = e.contains.endTurn ()  
+            if(gains){
+                player.gold += gains.gold;
+                console.log(player.gold)
+            }      
+        }
+    });
 }
 
 // on mouse over an attack target
