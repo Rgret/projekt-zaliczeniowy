@@ -1,12 +1,33 @@
+{% load static %} 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Witaj w Login</title>
+    <title>Sign Up</title>
+    <head>
+        <!-- Twoje inne tagi meta i tytuł -->
+        <link rel="stylesheet" href="{% static 'register/register-style.css' %}">
+    </head>
+    
 </head>
 <body>
-    <h1> Register</h1>
-    <p>otwiera sie.</p>
-</body>
-</html>
+    <body>
+        <form id="registrationForm" method="post">
+            {% csrf_token %}
+            <label for="username">Nazwa użytkownika:</label>
+            <input type="text" name="username" id="username" required>
+    
+            <label for="email">Email:</label>
+            <input type="email" name="email" id="email" required>
+    
+            <label for="password">Hasło:</label>
+            <input type="password" name="password" id="password" required>
+    
+            <button type="submit">Zarejestruj się</button>
+        </form>
+    
+        <script src="{% static 'register.js' %}"></script> 
+    </body>
+    </html>

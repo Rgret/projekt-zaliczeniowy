@@ -1,0 +1,45 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Ustawia wysokość całego ciała na 100% widocznej części okna */
+    margin: 0; /* Usuwa domyślny margines */
+    background-color: #f5f5f5; /* Jasne tło dla strony */
+    font-family: Arial, sans-serif; /* Ustawia rodzaj czcionki */
+}
+
+form {
+    border: 1px solid #ddd; /* Dodaje obramowanie formularza */
+    padding: 20px; /* Dodaje odstęp wewnątrz formularza */
+    border-radius: 5px; /* Zaokrągla rogi formularza */
+    background-color: white; /* Tło formularza */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Lekkie cieniowanie dla formularza */
+}
+
+label {
+    display: block; /* Sprawia, że etykiety są wyświetlane jako bloki */
+    margin-bottom: 5px; /* Odległość między etykietą a polem formularza */
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%; /* Szerokość pól tekstowych */
+    padding: 8px; /* Wypełnienie pól tekstowych */
+    margin-bottom: 15px; /* Odległość między polami formularza */
+    border: 1px solid #ddd; /* Obramowanie pól tekstowych */
+    border-radius: 4px; /* Zaokrąglenie rogi pól tekstowych */
+}
+
+button {
+    background-color: #007bff; /* Kolor tła przycisku */
+    color: white; /* Kolor tekstu przycisku */
+    padding: 10px 15px; /* Wypełnienie przycisku */
+    border: none; /* Brak obramowania przycisku */
+    border-radius: 4px; /* Zaokrąglenie rogi przycisku */
+    cursor: pointer; /* Kursor wskazuje, że przycisk jest klikalny */
+}
+
+button:hover {
+    background-color: #0056b3; /* Kolor tła przycisku po najechaniu */
+}

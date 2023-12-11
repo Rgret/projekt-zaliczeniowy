@@ -6,14 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'home/home-style.css' %}">
     <title>Strona Główna</title>
-    <style>
-       
-    </style>
 </head>
 <body>
     <div id="navbar">
         <div>
-            <a href="/login">Login</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'user_logout' %}">Wyloguj się</a> <!-- Link do wylogowania dla zalogowanych użytkowników -->
+            {% else %}
+                <a href="{% url 'user_login' %}">Zaloguj się</a> <!-- Link do logowania dla niezalogowanych użytkowników -->
+            {% endif %}
             <a href="/lobby">Lobby</a>
         </div>
     </div>
@@ -21,9 +22,11 @@
     <main>
         <div class="user-panel">
             <h2>Panel Użytkownika</h2>
-            <p>Nazwa:</p>
-           
-          
+            {% if user.is_authenticated %}
+                <p>Nazwa: {{ user.username }}</p>
+            {% else %}
+                <p>Nie jesteś zalogowany.</p>
+            {% endif %}
         </div>
     </main>
 
