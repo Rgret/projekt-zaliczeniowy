@@ -12,6 +12,9 @@ def lobby(request):
     lobbies = get_lobbies_data()
     return render(request, 'lobby/lobby.html', {'lobbies': lobbies})
 
+def home(request):
+    return render(request, 'home/home.html')
+
 
 def login(request):
     if request.method == 'POST':
