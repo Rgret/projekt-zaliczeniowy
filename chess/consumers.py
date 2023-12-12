@@ -8,6 +8,19 @@ from channels.generic.websocket import WebsocketConsumer
 global p_board
 p_board = {}
 
+@database_sync_to_async
+def get_game(game_id):
+    # Synchronous database query
+    return Games.objects.get(id=game_id)
+@database_sync_to_async
+def get_lobby(game):
+    lobby = Lobbies.objects.get(id_game = game)
+    host_username = lobby.id_host.username if lobby.id_host else None
+    player_username = lobby.id_player.username if lobby.id_player else None
+    return {'host': host_username, 'player': player_username}
+
+
+
 class LobbyConsumer(WebsocketConsumer):
     def connect(self):
         self.accept()
@@ -18,7 +31,7 @@ class LobbyConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        host = Users.objects.get(id = data["host"])
+        host = User.objects.get(id = data["host"])
         data_type = data["type"]
         if(data_type == "createLobby"):
             newGame = Games()
@@ -33,21 +46,19 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"game_{self.room_name}"
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        random.seed(self.room_group_name)
         global p_board
+        game = await get_game(self.scope["url_route"]["kwargs"]["game_id"])
+        lobby = await get_lobby(game)
+        print(lobby)
         if(not self.room_group_name in p_board):
-            await self.send(text_data=json.dumps({
-            "type": "start",
-            "top": (int)((random.random()*10)%10), 
-            "bottom": (int)((random.random()*10)%10),
-            "enemy1": (int)((random.random()*100-50)%10),
-            "enemy2": (int)((random.random()*100-50)%10),
-            "topCastle": 1,
-            "bottomCastle": 81,
-            }))
-        else:
-            print("loaded board")
-            await self.send(text_data=json.dumps({"type":"regenBoard", "board": p_board[self.room_group_name]}))
+            p_board[self.room_group_name] = {'board': None}
+        if(not 'player1' in p_board[self.room_group_name]):
+            host = lobby['host']
+            p_board[self.room_group_name]['player1'] = host
+        if(not 'player2' in p_board[self.room_group_name]):
+            player = lobby['player']
+            p_board[self.room_group_name]['player2'] = player
+        await self.send(text_data=json.dumps({"type":"connected", p_board[self.room_group_name]['player1']: "top", p_board[self.room_group_name]['player2']: "bottom"}))
 
         
     async def disconnect(self, close_code):
@@ -78,24 +89,33 @@ class GameConsumer(AsyncWebsocketConsumer):
             player = data["player"]
             await self.channel_layer.group_send(
             self.room_group_name, {"type": "endTurn", "player": player})
+        
+        if(data_type == "start"):
+            id = data["id"]
+            await self.channel_layer.group_send(
+            self.room_group_name, {"type": "start", "id": id})
 
-    async def respond(self, event):
-        message = event["test"]
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({"test": message}))
-
-    async def move(self, event):
-        start = event["start"]
-        end = event["end"]
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({"type": "move", "start": start, "end": end}))
+    async def start(self, event):
+        global p_board
+        random.seed(self.room_group_name)
+        if(p_board[self.room_group_name]['board']==None):
+            print(p_board[self.room_group_name]['board'])
+            await self.send(text_data=json.dumps({
+                "type": "start",
+                "top": (int)((random.random()*10)%10), 
+                "bottom": (int)((random.random()*10)%10),
+                "enemy1": (int)((random.random()*100-50)%10),
+                "enemy2": (int)((random.random()*100-50)%10),
+                "topCastle": 1,
+                "bottomCastle": 81,
+            }))
+        else:
+            await self.send(text_data=json.dumps({"type":"regenBoard", "board": p_board[self.room_group_name]['board']}))
 
     async def regenBoard(self, event):
         board = event["board"]
         global p_board
-        p_board = {self.room_group_name: board}
+        p_board[self.room_group_name]['board'] = board
         # Send message to WebSocket
         await self.send(text_data=json.dumps({"type":"regenBoard", "board": board}))
 

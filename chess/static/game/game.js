@@ -6,8 +6,10 @@ let hovering = true;
 let board = [];
 let id = 0;
 
+const username = JSON.parse(document.getElementById('username').textContent);
+
 // change when logging in is possible
-player = {team: "Bottom", gold: 100, turn: true}
+let player = {user: username, team: "Bottom", gold: 100, turn: false}
 
 const gameId = JSON.parse(document.getElementById('game_id').textContent);
     console.log(gameId)
@@ -40,31 +42,34 @@ chatSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     //console.log(data)
     switch(data.type){
-        // all "start" type socket events likely need a change
+        case ("connected"):
+            player.team = data[player.user]
+            chatSocket.send(JSON.stringify({
+                'type':'start',
+                'id': gameId
+            }))
+        break;
         case ("start"):
+            console.log(data)
             // change to support multiple board sizes
             let top = data.top;
             let bottom = data.bottom+71;
             let en1 = data.enemy1+20;
             let en2 = data.enemy2+20;
+            
+            console.log(player)
             console.log(top, bottom)
 
             // change to support multiple pawn/castle types
-            board[top].contains = new Pawn({owner: "Top"});
-            board[bottom].contains = new Pawn({owner: "Bottom"});
+            board[top].contains = new Pawn({owner: "top"});
+            board[bottom].contains = new Pawn({owner: "bottom"});
             board[en1].contains = new Pawn({enemy: true, owner: "Bot"});
             board[en2].contains = new Pawn({enemy: true, owner: "Bot"});
-            board[0].contains = new Castle({owner: "Top"});
-            board[board.length - 1].contains = new Castle({owner: "Bottom"});
+            board[0].contains = new Castle({owner: "top"});
+            board[board.length - 1].contains = new Castle({owner: "bottom"});
+            
             regenBoard()
             sendBoard()
-        break;
-        case ("move"):
-            // can stay for now
-            board[data.end].contains = board[data.start].contains
-            board[data.start].contains = null;
-            selected = undefined;
-            regenBoard()
         break;
         case ("newTurn"):
             if(data.player != player.team) turn = true;
@@ -181,16 +186,21 @@ function spaceClick(e) {
             } 
         break;
         case "Building":
+            let bPanel = document.querySelector(".buildingMenu")
             let detailsPanel = document.querySelector(".detailsPanel")
-            detailsPanel.style.left = '0px'
-            detailsPanel.querySelector(".detailsAtk").innerHTML = selected.contains.stats.ATK;
-            detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.currentHP;
-            detailsPanel.querySelector(".detailsHPMax").innerHTML = selected.contains.stats.maxHP;
-            if (target.button.classList.contains("spawnableTile")){
+            if (bPanel.innerHTML == ''){   
+                detailsPanel.style.left = '0px'
+                detailsPanel.querySelector(".detailsAtk").innerHTML = selected.contains.stats.ATK;
+                detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.currentHP;
+                detailsPanel.querySelector(".detailsHPMax").innerHTML = selected.contains.stats.maxHP;
+                genBuildabels()
+            }
+            else if (target.button.classList.contains("spawnableTile")){
                 console.log("castle")
             }else if(target != selected) { 
                 detailsPanel.style.left = '-30%'
                 selected = undefined;
+                bPanel.innerHTML = ''
                 removeHilight()
             } 
         break;
@@ -221,6 +231,14 @@ function endTurn(){
             }      
         }
     });
+}
+
+function genBuildabels() {
+    let buildables = selected.contains.getBuildablesDOM()
+    let bPanel = document.querySelector(".buildingMenu")
+    buildables.forEach(e => {
+        bPanel.appendChild(e)
+    })
 }
 
 // on mouse over an attack target
@@ -302,4 +320,13 @@ function sendBoard(){
         'type':'regenBoard',
         'board': b
     }))
+}
+
+function buyUpgrade(e) {
+    let target = e.target
+    if(player.team == target.dataset.owner && player.gold >= parseInt(target.innerHTML)) {
+        player.gold -= parseInt(target.innerHTML)
+        target.dataset.bought = parseInt(target.dataset.bought) + 1
+        target.innerHTML = parseInt(target.dataset.sPrice) + parseInt(target.dataset.gPrice) * parseInt(target.dataset.bought)
+    }
 }

@@ -131,6 +131,9 @@ class Pawn extends Entity{
 class Castle extends Entity {
     Type = "Building"
     Name = "Castle"
+    Upgrades = [
+        {name: "Gold mine", gold: 30, sPrice: 90, gPrice: 20, bought: 0},
+    ]
     gains = {
         gold: 10
     }
@@ -140,8 +143,33 @@ class Castle extends Entity {
         this.IMG.src = ""
         this.DOM.classList += " Castle"
     }
-    get gains(){
-        return this.gains;
+    getBuildablesDOM(player) {
+        let buildables = []
+
+        let container = document.createElement('div')
+        container.classList += " upgradeContainer"
+
+        let button = document.createElement('button')
+        button.classList += " buyUpgrade"
+        container.appendChild(button)
+
+        let label = document.createElement('a')
+        label.classList += " upgradeLabel"
+        container.appendChild(label)
+
+        this.Upgrades.forEach(e => {
+            button.innerHTML = e.sPrice + e.gPrice * e.bought
+            button.dataset.sPrice = e.sPrice
+            button.dataset.gPrice = e.gPrice
+            button.dataset.bought = e.bought
+            button.dataset.owner = this.owner
+            label.text = e.name
+            button.addEventListener("click", (e) => {
+                buyUpgrade(e)
+            });
+            buildables.push(container)
+        })
+        return buildables
     }
     InitRange(tile) {
         this.inRange = undefined;
