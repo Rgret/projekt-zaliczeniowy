@@ -52,13 +52,17 @@ class GameConsumer(AsyncWebsocketConsumer):
         print(lobby)
         if(not self.room_group_name in p_board):
             p_board[self.room_group_name] = {'board': None}
-        if(not 'player1' in p_board[self.room_group_name]):
+            p_board[self.room_group_name][lobby['host']] = {'name': lobby['host'], 'team': 'top', 'gold': 100}
+            p_board[self.room_group_name][lobby['player']] = {'name': lobby['player'], 'team': 'bottom', 'gold': 100}
+        if(not lobby['host'] in p_board[self.room_group_name]):
             host = lobby['host']
-            p_board[self.room_group_name]['player1'] = host
-        if(not 'player2' in p_board[self.room_group_name]):
+            p_board[self.room_group_name][lobby['host']]['name'] = host
+        if(not lobby['player'] in p_board[self.room_group_name]):
             player = lobby['player']
-            p_board[self.room_group_name]['player2'] = player
-        await self.send(text_data=json.dumps({"type":"connected", p_board[self.room_group_name]['player1']: "top", p_board[self.room_group_name]['player2']: "bottom"}))
+            p_board[self.room_group_name][lobby['player']]['name'] = player
+        await self.send(text_data=json.dumps({"type":"connected", p_board[self.room_group_name][lobby['host']]['name']: 'top', p_board[self.room_group_name][lobby['player']]['name']: 'bottom', 
+                                              'gold':{ p_board[self.room_group_name][lobby['host']]['name']: p_board[self.room_group_name][lobby['host']]['gold'],
+                                                      p_board[self.room_group_name][lobby['player']]['name']: p_board[self.room_group_name][lobby['player']]['gold'] } }))
 
         
     async def disconnect(self, close_code):
@@ -82,8 +86,10 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if(data_type == "regenBoard"):
             board = data["board"]
+            player = data["player"]
+            gold = data["gold"]
             await self.channel_layer.group_send(
-            self.room_group_name, {"type": "regenBoard", "board": board})
+            self.room_group_name, {"type": "regenBoard", "board": board, 'player': player, 'gold': gold})
 
         if(data_type == "endTurn"):
             player = data["player"]
@@ -94,6 +100,9 @@ class GameConsumer(AsyncWebsocketConsumer):
             id = data["id"]
             await self.channel_layer.group_send(
             self.room_group_name, {"type": "start", "id": id})
+
+        if(data_type == "clear"):
+            print("Cleared all boards!")
 
     async def start(self, event):
         global p_board
@@ -114,10 +123,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def regenBoard(self, event):
         board = event["board"]
+        player = event["player"]
+        gold = event["gold"]
         global p_board
         p_board[self.room_group_name]['board'] = board
+        p_board[self.room_group_name][player]['gold'] = gold
         # Send message to WebSocket
-        await self.send(text_data=json.dumps({"type":"regenBoard", "board": board}))
+        #print (p_board[self.room_group_name])
+        await self.send(text_data=json.dumps({"type":"regenBoard", "board": board, 'player': player, 'gold': gold}))
 
     async def endTurn(self, event):
         player = event["player"]

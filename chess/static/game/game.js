@@ -1,7 +1,6 @@
 const boardContainer = document.querySelector(".board-container")
 let selected = undefined;
-let mode = null;
-let turn = true;
+let unit = null;
 let hovering = true;
 let board = [];
 let id = 0;
@@ -10,7 +9,7 @@ const username = JSON.parse(document.getElementById('username').textContent);
 
 // change when logging in is possible
 let player = {user: username, team: "Bottom", gold: 100, turn: false}
-
+let player2 = {gold: 100}
 const gameId = JSON.parse(document.getElementById('game_id').textContent);
     console.log(gameId)
 const chatSocket = new WebSocket(
@@ -43,7 +42,9 @@ chatSocket.onmessage = function(e) {
     //console.log(data)
     switch(data.type){
         case ("connected"):
+            console.log(data)
             player.team = data[player.user]
+            player.gold = data.gold[player.user]
             chatSocket.send(JSON.stringify({
                 'type':'start',
                 'id': gameId
@@ -68,11 +69,23 @@ chatSocket.onmessage = function(e) {
             board[0].contains = new Castle({owner: "top"});
             board[board.length - 1].contains = new Castle({owner: "bottom"});
             
+            if (player.team == 'top') {
+                player.turn = true;
+                setTimeout(() => {console.log("New turn "); endTurn()}, 3000)
+            }
+            else player.turn = false
+
             regenBoard()
             sendBoard()
         break;
         case ("newTurn"):
-            if(data.player != player.team) turn = true;
+            console.log("New turn event")
+            if(data.player != player.team) {
+                player.turn = true;
+                startTurn();
+                setTimeout(() => {console.log("New turn "); endTurn()}, 3000)
+            }
+            // console.log("New Turn: " + data.player)
         break;
         case ("regenBoard"):
             // can stay for now
@@ -95,6 +108,7 @@ chatSocket.onmessage = function(e) {
                                 stats: data.board[i].contains.stats,
                                 owner: data.board[i].contains.owner,
                                 gains: data.board[i].contains.gains,
+                                Upgrades: data.board[i].contains.Upgrades,
                             });
                             board[i].contains = castle
                         break;
@@ -108,6 +122,8 @@ chatSocket.onmessage = function(e) {
                     }
                 }
             }
+            if(data.player == player.user) player.gold = data.gold
+            else player2.gold = data.gold
             regenBoard()
         break;
     }
@@ -131,7 +147,7 @@ function spaceClick(e) {
     switch (selected.contains.Type) {
         case "Pawn":
             // move
-            if(turn && target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved && selected.contains.owner == player.team && selected.contains.Type != "Building"){
+            if(target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved && selected.contains.owner == player.team && selected.contains.Type != "Building" && player.turn){
                 let x = document.getElementById(selected.button.id);
                 if(x.firstChild){
                     x.removeChild(x.firstChild)
@@ -147,7 +163,7 @@ function spaceClick(e) {
             }
         
             // attack
-            else if(turn && target.button.classList.contains("attackOnly") && !selected.contains.attacked && selected.contains.owner != target.contains.owner ) {
+            else if(target.button.classList.contains("attackOnly") && !selected.contains.attacked && selected.contains.owner != target.contains.owner && player.turn) {
                 if(selected.contains.attkRange == null) selected.contains.InitRange(selected);
                 let targets = selected.contains.attackPattern(target)
                 console.log(targets)
@@ -187,6 +203,7 @@ function spaceClick(e) {
         break;
         case "Building":
             let bPanel = document.querySelector(".buildingMenu")
+            let uPanel = document.querySelector(".unitsMenu")
             let detailsPanel = document.querySelector(".detailsPanel")
             if (bPanel.innerHTML == ''){   
                 detailsPanel.style.left = '0px'
@@ -194,15 +211,20 @@ function spaceClick(e) {
                 detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.currentHP;
                 detailsPanel.querySelector(".detailsHPMax").innerHTML = selected.contains.stats.maxHP;
                 genBuildabels()
+                genSpawnables()
             }
-            else if (target.button.classList.contains("spawnableTile")){
-                console.log("castle")
+            else if (target.button.classList.contains("spawnableTile") && board[target.button.id].contains == null){
+                if(unit != null){
+                    board[target.button.id].contains = unit
+                    unit = null
+                }
             }else if(target != selected) { 
                 detailsPanel.style.left = '-30%'
                 selected = undefined;
                 bPanel.innerHTML = ''
+                uPanel.innerHTML = ''
                 removeHilight()
-            } 
+            }
         break;
         default:
             { 
@@ -215,8 +237,19 @@ function spaceClick(e) {
     sendBoard()
 }
 
+function startTurn() {
+    console.log("Turn started for " + player.user)
+    board.forEach(e => {
+        if(e.contains){
+            if (e.contains.moved) e.contains.moved = false;
+            if (e.contains.attacked) e.contains.attacked = false;
+        }
+    })
+}
+
 function endTurn(){
-    if (!turn) return;
+    console.log("Turn ended.")
+    if (!player.turn) return;
     turn = false;
     chatSocket.send(JSON.stringify({
         'type':'endTurn',
@@ -224,10 +257,10 @@ function endTurn(){
     }))
     board.forEach(e => {
         if(e.contains != null && e.contains.owner == player.team){
-            let gains = e.contains.endTurn ()  
+            let gains = e.contains.gains 
             if(gains){
                 player.gold += gains.gold;
-                console.log(player.gold)
+                console.log("Player Gold: " + player.gold)
             }      
         }
     });
@@ -238,6 +271,14 @@ function genBuildabels() {
     let bPanel = document.querySelector(".buildingMenu")
     buildables.forEach(e => {
         bPanel.appendChild(e)
+    })
+}
+
+function genSpawnables() {
+    let spawnables = selected.contains.getSpawnablesDOM()
+    let uPanel = document.querySelector(".unitsMenu")
+    spawnables.forEach(e => {
+        uPanel.appendChild(e)
     })
 }
 
@@ -318,15 +359,40 @@ function sendBoard(){
     });
     chatSocket.send(JSON.stringify({
         'type':'regenBoard',
-        'board': b
+        'board': b,
+        'player': player.user,
+        'gold': player.gold,
     }))
 }
 
 function buyUpgrade(e) {
     let target = e.target
+    upgrade = selected.contains.Upgrades.find(upgrade => upgrade.name === target.dataset.name)
+    console.log(upgrade)
     if(player.team == target.dataset.owner && player.gold >= parseInt(target.innerHTML)) {
         player.gold -= parseInt(target.innerHTML)
         target.dataset.bought = parseInt(target.dataset.bought) + 1
+        upgrade.bought += 1
         target.innerHTML = parseInt(target.dataset.sPrice) + parseInt(target.dataset.gPrice) * parseInt(target.dataset.bought)
     }
+    sendBoard()
+}
+
+function buyUnit(e) {
+    if (!player.turn) return
+    let target = e.target
+    if (player.gold < target.dataset.sPrice) return
+    switch (target.dataset.name){
+        case 'Pawn':
+            unit = new Pawn({owner: player.team})
+            player.gold -= parseInt(target.dataset.sPrice)
+        break;
+    }
+    sendBoard()
+}
+
+function devClear() {
+    chatSocket.send(JSON.stringify({
+        'type':'clear',
+    }))
 }

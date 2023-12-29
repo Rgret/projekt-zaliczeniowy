@@ -134,6 +134,9 @@ class Castle extends Entity {
     Upgrades = [
         {name: "Gold mine", gold: 30, sPrice: 90, gPrice: 20, bought: 0},
     ]
+    Units = [
+        {name: "Pawn", type: "Pawn", sPrice: 60},
+    ]
     gains = {
         gold: 10
     }
@@ -142,6 +145,32 @@ class Castle extends Entity {
         Object.assign(this, options);
         this.IMG.src = ""
         this.DOM.classList += " Castle"
+    }
+    getSpawnablesDOM(player) {
+        let spawnables = []
+
+        let container = document.createElement('div')
+        container.classList += " spawnablesContainer"
+
+        let button = document.createElement('button')
+        button.classList += " buyUnit"
+        container.appendChild(button)
+
+        let label = document.createElement('a')
+        label.classList += " spawnablesLabel"
+        container.appendChild(label)
+
+        this.Units.forEach(e => {
+            button.innerHTML = e.sPrice
+            button.dataset.sPrice = e.sPrice
+            button.dataset.name = e.name
+            label.text = e.name
+            button.addEventListener("click", e=> {
+                buyUnit(e)
+            });
+            spawnables.push(container)
+        });
+        return spawnables
     }
     getBuildablesDOM(player) {
         let buildables = []
@@ -159,6 +188,7 @@ class Castle extends Entity {
 
         this.Upgrades.forEach(e => {
             button.innerHTML = e.sPrice + e.gPrice * e.bought
+            button.dataset.name = e.name
             button.dataset.sPrice = e.sPrice
             button.dataset.gPrice = e.gPrice
             button.dataset.bought = e.bought
