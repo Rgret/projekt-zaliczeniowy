@@ -33,10 +33,10 @@
     min-width: 50px;
     max-height: 50px;
     max-width: 50px;
-    margin:-1px;
+    margin:0px;
     padding:0;
     float:left;
-    border:1px solid gray;
+    outline:1px solid gray;
     background-color: whitesmoke;
     
 }
@@ -45,9 +45,6 @@
     background-color: aqua;
 }
 
-.selected {
-    background-color: green;
-}
 .ATK {
     position: absolute;
     top: 10%;
@@ -97,4 +94,27 @@
     min-width: 50px;
     min-height: 50px;
     background-color: yellowgreen;
+}
+
+.selected {
+    background-color: cornflowerblue;
+}
+
+.unitContainer {
+    opacity: 0;
+    position: absolute;
+    max-width: 45px;
+    max-height: 45px;
+    z-index: 98;
+    pointer-events: none;
+}
+
+.unitImage {
+    max-width: 45px;
+    max-height: 45px;
+}
+
+.upgradeContainer {
+    padding: 3px;
+    outline: 1px gray solid
 }

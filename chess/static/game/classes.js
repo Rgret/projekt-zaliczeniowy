@@ -1,3 +1,6 @@
+// base entity code
+// has basic information about all in game entities
+// needs to be inherited by all in game entities
 class Entity {
     Type = null
     owner = null
@@ -48,6 +51,8 @@ class Entity {
         container.appendChild(hp)
 
         this.DOM = container;
+
+        this.getRelevant()
     }
     get range() {
         return this.stats.range
@@ -102,41 +107,88 @@ class Entity {
     endTurn(){
         return false;
     }
+    getRelevant(){
+        return 1
+    }
 }
 
+// need it here cuz will be needed elsewhere in the code
+// base stats and "on death" effects of units
+let baseKill = {gold: 10, effect: () => {return 0}}
+let baseStats = {'Pawn': {range: 4, ATK: 5, maxHP: 10, sPrice: 30},
+                'Cavlary': {range: 6, ATK: 6, maxHP: 15, sPrice: 50}}
+
+
+// basic starter unit
 class Pawn extends Entity{
     Type = "Pawn"
     Name = "Pawn"
+    Die = {gold: baseKill.gold, effect: baseKill.effect}
+
+    relevantStats = {owner: this.owner,
+        stats: this.stats,
+        enemy: this.enemy,
+        moved: this.moved,
+        attacked: this.attacked,
+    }
+
     stats = {
-        range: 6,
-        maxHP: 10,
-        ATK: 5,
-        currentHP: 10,
+        range: baseStats.Pawn.range,
+        maxHP: baseStats.Pawn.maxHP,
+        ATK: baseStats.Pawn.ATK,
+        currentHP: baseStats.Pawn.maxHP,
     }
 
     constructor(options = {}){
         super(options)
         Object.assign(this, options);
+        this.IMG = "https://w7.pngwing.com/pngs/96/435/png-transparent-world-chess-championship-pawn-chess-piece-chess-engine-cheess-game-king-queen-thumbnail.png"
+        this.getRelevant()
     }
 
     InitRange(tile) {
         this.inRange = selectInRange(tile, this.stats.range, true, {movable: !this.moved});
         this.attkRange = crossSelector(tile, true, {attackOnly: !this.attacked});
     }
-    attackPattern(tile) {
+    attackPattern(tile, selected = null) {
         return tile
+    }
+    getRelevant(){
+        this.relevantStats = {owner: this.owner,
+            stats: this.stats,
+            enemy: this.enemy,
+            moved: this.moved,
+            attacked: this.attacked,
+        }
     }
 }
 
+
+// for now the only building
+// represents player's "capital"
+// win condition
 class Castle extends Entity {
     Type = "Building"
     Name = "Castle"
+
+    relevantStats = {owner: this.owner,
+        stats: this.stats,
+        enemy: this.enemy,
+        moved: this.moved,
+        attacked: this.attacked,
+        gains: this.gains,
+        Upgardes: this.Upgrades,
+        Units: this.Units,
+    }
+
     Upgrades = [
-        {name: "Gold mine", gold: 30, sPrice: 90, gPrice: 20, bought: 0},
+        {name: "Gold mine", gold: 30, sPrice: 90, gPrice: 20, bought: 0, 
+            description: "30 additional gold at the end of each round."},
     ]
     Units = [
-        {name: "Pawn", type: "Pawn", sPrice: 60},
+        {name: "Pawn", type: "Pawn", sPrice: baseStats.Pawn.sPrice},
     ]
+    statGains = {ATK: 0, maxHP: 0,}
     gains = {
         gold: 10
     }
@@ -159,12 +211,17 @@ class Castle extends Entity {
         let label = document.createElement('a')
         label.classList += " spawnablesLabel"
         container.appendChild(label)
+        
+        let desc = document.createElement('p')
+        desc.classList += " unitDesc"
+        container.appendChild(desc)
 
         this.Units.forEach(e => {
             button.innerHTML = e.sPrice
             button.dataset.sPrice = e.sPrice
             button.dataset.name = e.name
             label.text = e.name
+            desc.text = e.description
             button.addEventListener("click", e=> {
                 buyUnit(e)
             });
@@ -186,6 +243,10 @@ class Castle extends Entity {
         label.classList += " upgradeLabel"
         container.appendChild(label)
 
+        let desc = document.createElement('p')
+        desc.classList += " buildingDesc"
+        container.appendChild(desc)
+
         this.Upgrades.forEach(e => {
             button.innerHTML = e.sPrice + e.gPrice * e.bought
             button.dataset.name = e.name
@@ -194,6 +255,7 @@ class Castle extends Entity {
             button.dataset.bought = e.bought
             button.dataset.owner = this.owner
             label.text = e.name
+            desc.innerHTML = e.description
             button.addEventListener("click", (e) => {
                 buyUpgrade(e)
             });
@@ -210,5 +272,16 @@ class Castle extends Entity {
     }
     endTurn() {
         return gains
+    }
+    getRelevant(){
+        this.relevantStats = {owner: this.owner,
+            stats: this.stats,
+            enemy: this.enemy,
+            moved: this.moved,
+            attacked: this.attacked,
+            gains: this.gains,
+            Upgardes: this.Upgrades,
+            Units: this.Units,
+        }
     }
 }

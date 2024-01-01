@@ -1,3 +1,7 @@
+// selectors used to hilight tiles for relevant purposes
+// mainly attacking, movement range, attack range
+
+
 // movement range
 function selectInRange(tile, range, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false}){
     let selected = []
@@ -42,4 +46,39 @@ function crossSelector(tile, allInRange = false, options = {movable: false, targ
         }
     });
     return selected
+}
+
+//testing directional shit, ignore this
+//- + -
+//+ t +
+//- + -
+function testSelector(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false}) {
+    let selected = []
+    board.forEach(e => {
+        if(e.X == tile.X || e.Y == tile.Y){
+            if (!tile.contains.attacked){
+                if (e.contains != null && e.contains.owner != tile.contains.owner) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
+                else if (allInRange) selected.push({id: e.id, target: allInRange});
+            }else if (allInRange) selected.push({id: e.id, target: allInRange}); 
+        }
+    });
+    return selected
+}
+function directionalTestSelector(tile, selected) {
+    let test = {X: tile.X - selected.X, Y: tile.Y - selected.Y}
+
+    if (test.X > 0 && test.Y == 0){
+        return board.filter(e => e.Y == selected.Y && e.X > selected.X)
+    }
+    if (test.X < 0 && test.Y == 0){
+        return board.filter(e => e.Y == selected.Y && e.X < selected.X)
+    }
+    if (test.X == 0 && test.Y > 0){
+        return board.filter(e => e.X == selected.X && e.Y > selected.Y)
+    }
+    if (test.X == 0 && test.Y < 0){
+        return board.filter(e => e.X == selected.X && e.Y < selected.Y)
+    }
+
+    return 0
 }

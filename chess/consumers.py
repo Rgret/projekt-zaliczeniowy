@@ -54,6 +54,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             p_board[self.room_group_name] = {'board': None}
             p_board[self.room_group_name][lobby['host']] = {'name': lobby['host'], 'team': 'top', 'gold': 100}
             p_board[self.room_group_name][lobby['player']] = {'name': lobby['player'], 'team': 'bottom', 'gold': 100}
+            p_board[self.room_group_name]['turn'] = 'top'
         if(not lobby['host'] in p_board[self.room_group_name]):
             host = lobby['host']
             p_board[self.room_group_name][lobby['host']]['name'] = host
@@ -61,6 +62,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             player = lobby['player']
             p_board[self.room_group_name][lobby['player']]['name'] = player
         await self.send(text_data=json.dumps({"type":"connected", p_board[self.room_group_name][lobby['host']]['name']: 'top', p_board[self.room_group_name][lobby['player']]['name']: 'bottom', 
+                                              'turn': p_board[self.room_group_name]['turn'],
                                               'gold':{ p_board[self.room_group_name][lobby['host']]['name']: p_board[self.room_group_name][lobby['host']]['gold'],
                                                       p_board[self.room_group_name][lobby['player']]['name']: p_board[self.room_group_name][lobby['player']]['gold'] } }))
 
@@ -87,9 +89,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         if(data_type == "regenBoard"):
             board = data["board"]
             player = data["player"]
+            team = data['team']
             gold = data["gold"]
             await self.channel_layer.group_send(
-            self.room_group_name, {"type": "regenBoard", "board": board, 'player': player, 'gold': gold})
+            self.room_group_name, {"type": "regenBoard", "board": board, 'player': player, 'gold': gold, 'team': team})
 
         if(data_type == "endTurn"):
             player = data["player"]
@@ -102,21 +105,27 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name, {"type": "start", "id": id})
 
         if(data_type == "clear"):
+            global p_board
+            p_board = {}
             print("Cleared all boards!")
+
+        if(data_type == "askTurn"):
+            await self.channel_layer.group_send(
+            self.room_group_name, {"type": "askTurn"})
 
     async def start(self, event):
         global p_board
         random.seed(self.room_group_name)
         if(p_board[self.room_group_name]['board']==None):
-            print(p_board[self.room_group_name]['board'])
+            #print(p_board[self.room_group_name]['board'])
             await self.send(text_data=json.dumps({
                 "type": "start",
-                "top": (int)((random.random()*10)%10), 
-                "bottom": (int)((random.random()*10)%10),
-                "enemy1": (int)((random.random()*100-50)%10),
-                "enemy2": (int)((random.random()*100-50)%10),
-                "topCastle": 1,
-                "bottomCastle": 81,
+                "top": 1, 
+                "bottom": 79,
+                "enemy1": 8,
+                "enemy2": 72,
+                "topCastle": 0,
+                "bottomCastle": 80,
             }))
         else:
             await self.send(text_data=json.dumps({"type":"regenBoard", "board": p_board[self.room_group_name]['board']}))
@@ -133,7 +142,17 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({"type":"regenBoard", "board": board, 'player': player, 'gold': gold}))
 
     async def endTurn(self, event):
-        player = event["player"]
-        
+        playerTeam = event["player"]
+        if playerTeam == 'top': p_board[self.room_group_name]['turn'] = 'bottom'
+        else: p_board[self.room_group_name]['turn'] = 'top'
+        for key, value in p_board[self.room_group_name].items():
+            if 'team' not in value: continue
+            if value["team"] == playerTeam: continue
+            hasTurn = value['name']
         # Send message to WebSocket
-        await self.send(text_data=json.dumps({"type":"newTurn", "player": player}))
+        await self.send(text_data=json.dumps({"type":"newTurn", "player": playerTeam, 'hasTurn': hasTurn}))
+
+    async def askTurn(self, event):
+        global p_board
+        turn = p_board[self.room_group_name]['turn']
+        await self.send(text_data=json.dumps({"type":"whoseTurn", "turn": turn}))
