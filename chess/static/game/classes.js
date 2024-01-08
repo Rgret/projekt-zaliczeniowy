@@ -3,6 +3,7 @@
 // needs to be inherited by all in game entities
 class Entity {
     Type = null
+    Name = "Pawn"
     owner = null
     DOM = null
     IMG = null
@@ -13,11 +14,19 @@ class Entity {
     inRange = null
     attkRange = null
     friendlyFire = false
+    winCon = false
+    Die = {gold: baseKill.gold}
     stats = {
         range: 0,
         maxHP: 10,
         ATK: 5,
         currentHP: 10,
+    }
+    relevantStats = {owner: this.owner,
+        stats: this.stats,
+        enemy: this.enemy,
+        moved: this.moved,
+        attacked: this.attacked,
     }
     constructor(options = {}){
         Object.assign(this, options);
@@ -25,9 +34,9 @@ class Entity {
         container.className += "image"
 
         let img = document.createElement('img');
-        img.src = "https://w7.pngwing.com/pngs/96/435/png-transparent-world-chess-championship-pawn-chess-piece-chess-engine-cheess-game-king-queen-thumbnail.png"
-        img.width = "45";
-        img.height = "45";
+        img.src = allUnits[this.Name].IMG[this.owner]
+        img.classList += " image"
+        img.classList += " " + this.owner
         this.IMG = img;
 
         let atk = document.createElement('a');
@@ -40,12 +49,6 @@ class Entity {
         hp.text = this.stats.currentHP;
         this.hpLabel = hp
 
-        if(this.owner == "Bot"){
-            img.src = "https://w7.pngwing.com/pngs/438/667/png-transparent-chess-piece-pawn-rook-chess-king-pin-sports-thumbnail.png"
-        }
-        if(this.owner == "Top"){
-            img.src = "https://cdn-icons-png.flaticon.com/512/647/647924.png"
-        }
         container.appendChild(img)
         container.appendChild(atk)
         container.appendChild(hp)
@@ -108,29 +111,19 @@ class Entity {
         return false;
     }
     getRelevant(){
-        return 1
+        this.relevantStats = {owner: this.owner,
+            stats: this.stats,
+            enemy: this.enemy,
+            moved: this.moved,
+            attacked: this.attacked,
+        }
     }
 }
-
-// need it here cuz will be needed elsewhere in the code
-// base stats and "on death" effects of units
-let baseKill = {gold: 10, effect: () => {return 0}}
-let baseStats = {'Pawn': {range: 4, ATK: 5, maxHP: 10, sPrice: 30},
-                'Cavlary': {range: 6, ATK: 6, maxHP: 15, sPrice: 50}}
-
 
 // basic starter unit
 class Pawn extends Entity{
     Type = "Pawn"
     Name = "Pawn"
-    Die = {gold: baseKill.gold, effect: baseKill.effect}
-
-    relevantStats = {owner: this.owner,
-        stats: this.stats,
-        enemy: this.enemy,
-        moved: this.moved,
-        attacked: this.attacked,
-    }
 
     stats = {
         range: baseStats.Pawn.range,
@@ -142,7 +135,6 @@ class Pawn extends Entity{
     constructor(options = {}){
         super(options)
         Object.assign(this, options);
-        this.IMG = "https://w7.pngwing.com/pngs/96/435/png-transparent-world-chess-championship-pawn-chess-piece-chess-engine-cheess-game-king-queen-thumbnail.png"
         this.getRelevant()
     }
 
@@ -153,14 +145,6 @@ class Pawn extends Entity{
     attackPattern(tile, selected = null) {
         return tile
     }
-    getRelevant(){
-        this.relevantStats = {owner: this.owner,
-            stats: this.stats,
-            enemy: this.enemy,
-            moved: this.moved,
-            attacked: this.attacked,
-        }
-    }
 }
 
 
@@ -170,6 +154,7 @@ class Pawn extends Entity{
 class Castle extends Entity {
     Type = "Building"
     Name = "Castle"
+    winCon = true
 
     relevantStats = {owner: this.owner,
         stats: this.stats,
@@ -181,16 +166,12 @@ class Castle extends Entity {
         Units: this.Units,
     }
 
-    Upgrades = [
-        {name: "Gold mine", gold: 30, sPrice: 90, gPrice: 20, bought: 0, 
-            description: "30 additional gold at the end of each round."},
-    ]
-    Units = [
-        {name: "Pawn", type: "Pawn", sPrice: baseStats.Pawn.sPrice},
-    ]
+    Upgrades = baseUpgrades
+    Units = baseUnits
+
     statGains = {ATK: 0, maxHP: 0,}
     gains = {
-        gold: 10
+        gold: 30
     }
     constructor(options = {}){
         super(options)
@@ -201,26 +182,26 @@ class Castle extends Entity {
     getSpawnablesDOM(player) {
         let spawnables = []
 
-        let container = document.createElement('div')
-        container.classList += " spawnablesContainer"
-
-        let button = document.createElement('button')
-        button.classList += " buyUnit"
-        container.appendChild(button)
-
-        let label = document.createElement('a')
-        label.classList += " spawnablesLabel"
-        container.appendChild(label)
-        
-        let desc = document.createElement('p')
-        desc.classList += " unitDesc"
-        container.appendChild(desc)
-
         this.Units.forEach(e => {
+            let container = document.createElement('div')
+            container.classList += " spawnablesContainer"
+            
+            let button = document.createElement('button')
+            button.classList += " buyUnit"
+            container.appendChild(button)
+            
+            let label = document.createElement('a')
+            label.classList += " spawnablesLabel"
+            container.appendChild(label)
+            
+            let desc = document.createElement('p')
+            desc.classList += " unitDesc"
+            container.appendChild(desc)
+            
             button.innerHTML = e.sPrice
             button.dataset.sPrice = e.sPrice
             button.dataset.name = e.name
-            label.text = e.name
+            label.text = e.dispName
             desc.text = e.description
             button.addEventListener("click", e=> {
                 buyUnit(e)
@@ -232,22 +213,22 @@ class Castle extends Entity {
     getBuildablesDOM(player) {
         let buildables = []
 
-        let container = document.createElement('div')
-        container.classList += " upgradeContainer"
-
-        let button = document.createElement('button')
-        button.classList += " buyUpgrade"
-        container.appendChild(button)
-
-        let label = document.createElement('a')
-        label.classList += " upgradeLabel"
-        container.appendChild(label)
-
-        let desc = document.createElement('p')
-        desc.classList += " buildingDesc"
-        container.appendChild(desc)
-
         this.Upgrades.forEach(e => {
+            let container = document.createElement('div')
+            container.classList += " upgradeContainer"
+
+            let button = document.createElement('button')
+            button.classList += " buyUpgrade"
+            container.appendChild(button)
+
+            let label = document.createElement('a')
+            label.classList += " upgradeLabel"
+            container.appendChild(label)
+
+            let desc = document.createElement('p')
+            desc.classList += " buildingDesc"
+            container.appendChild(desc)
+
             button.innerHTML = e.sPrice + e.gPrice * e.bought
             button.dataset.name = e.name
             button.dataset.sPrice = e.sPrice
@@ -280,7 +261,8 @@ class Castle extends Entity {
             moved: this.moved,
             attacked: this.attacked,
             gains: this.gains,
-            Upgardes: this.Upgrades,
+            statGains: this.statGains,
+            Upgrades: this.Upgrades,
             Units: this.Units,
         }
     }

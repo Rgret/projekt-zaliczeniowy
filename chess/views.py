@@ -5,13 +5,20 @@ from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout  # do wylogowania
 from django.shortcuts import redirect
+from django.conf import settings
+import os
 
 # Create your views here.
 def index(request):
-    return render(request, 'chess/index.html')
+    return redirect('home')
 
 def game(request, id):
-    return render(request, 'game/game.html', {"game_id" : id})
+    images_folder = os.path.join(settings.BASE_DIR, 'chess', 'static', 'game', 'images')
+    image_files = [f for f in os.listdir(images_folder) if os.path.isfile(os.path.join(images_folder, f))]
+    image_list = []
+    for image in image_files:
+        image_list.append({'name': os.path.splitext(image)[0], 'url': "game/images/{0}".format(image)})
+    return render(request, 'game/game.html', {"game_id" : id, 'image_list': image_list})
 
 def lobby(request):
     lobbies = get_lobbies_data()
@@ -19,8 +26,6 @@ def lobby(request):
 
 def home(request):
     return render(request, 'home/home.html')
-
-
 
 
 def user_login(request):
