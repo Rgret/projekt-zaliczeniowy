@@ -12,14 +12,18 @@
     
 <div id="lobbyContainer">
     <div id="leftPanel">
+
         <button id="toggleButton" onclick="togglePanel()">Toggle</button>
         <div id="lobbyList">
+
             <!-- Lobby items will be dynamically added here -->
             {% for lobby in lobbies %}
-            <div class="lobbyItem" onclick="showLobbyDetails({{lobby.id}})">
-                Lobby {{ lobby.id }} - Players: {{ lobby.id_users.count }}
+            
+            <div class="lobbyItem" onclick="showLobbyDetails({{lobby}})">
+                Lobby {{ lobby.id }} - Players: {{ lobby.players }}
             </div>
             {% endfor %}
+            <button class="lobbyItem" onclick="createLobby()">Create lobby</button>
         </div>
     </div>
     <div id="rightPanel">
@@ -32,7 +36,7 @@
         </div>
     </div>
 </div>
-<script src="{% static 'lobby/lobby.js' %}"></script>
+<script src="{% static 'lobby/lobby2.js' %}"></script>
 <script src="{% static 'lobby/lobby-channels.js' %}"></script>
 </body>
 </html>
