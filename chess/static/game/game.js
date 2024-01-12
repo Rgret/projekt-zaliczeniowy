@@ -3,6 +3,7 @@ const unitContainer = document.querySelector(".unitContainer")
 const playerBarTop = document.querySelector(".playerTop")
 const playerBarBottom = document.querySelector(".playerBottom")
 const turnNotif = document.querySelector(".turnNotif")
+const skillContainer = document.querySelector(".skillContainer")
 const loadingScreen = document.querySelector(".loadingScreen")
 
 const goldIcons = document.querySelectorAll(".goldIcon")
@@ -261,7 +262,7 @@ function spaceClick(e) {
     let target = board[e.target.id];
 
     // fill pawns inRange if empty
-    // inRnage hold a list of tiles and in what range are they
+    // inRange hold a list of tiles and in what range are they
     // ie. in movement or in attack range or both
     // also has information if the tile has an enemy unit inside
     // it's all used to hilight the tiles correctly
@@ -277,6 +278,12 @@ function spaceClick(e) {
 
     // we can't move, or attack if we haven't "selected" a pawn to do that with so we return
     if (selected == undefined) return
+
+    // check if it has a skill and show skill button
+    if (typeof selected.contains.skill === 'function' && !skillContainer.firstChild) {
+        skillContainer.appendChild(selected.contains.skillIcon())
+        skillContainer.style.left = '10px'
+    }
 
     // if we have a pawn "selected" we check if it's "Type" is "Pawn" - so a unit that can move/attack
     // or if it's a "Building" - so can't move, but has a building menu and can spawn units
@@ -309,10 +316,10 @@ function spaceClick(e) {
                         let e = board[t.id];
                         if(target.contains == null && (target.contains.owner == selected.contains.owner || !selected.contains.friendlyFire)) return;
                         e.contains.hit(selected.contains.stats.ATK)     
-                        let hpLabel = e.button.querySelector(".HP")
-                        hpLabel.text = e.contains.currentHP
+                        let hpLabel = e.button.querySelector(".HPLabel")
+                        hpLabel.text = e.contains.stats.currentHP
     
-                        if(e.contains.currentHP <= 0){
+                        if(e.contains.stats.currentHP <= 0){
                             player.gold += target.contains.Die.gold
                             if (e.contains.winCon) player2Proxy.cities = player2.cities - 1;
 
@@ -324,9 +331,9 @@ function spaceClick(e) {
                     
                     target.contains.hit(selected.contains.stats.ATK)     
                     let hpLabel = target.button.querySelector(".HP")
-                    hpLabel.text = target.contains.currentHP
+                    hpLabel.text = target.contains.stats.currentHP
     
-                    if(target.contains.currentHP <= 0){
+                    if(target.contains.stats.currentHP <= 0){
                         player.gold += target.contains.Die.gold
                         if (target.contains.winCon) player2Proxy.cities = player2.cities - 1;
                         delete target.contains
@@ -349,7 +356,7 @@ function spaceClick(e) {
             if (bPanel.innerHTML == ''){   
                 detailsPanel.style.left = '0px'
                 detailsPanel.querySelector(".detailsAtk").innerHTML = selected.contains.stats.ATK;
-                detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.currentHP;
+                detailsPanel.querySelector(".detailsHPCurrent").innerHTML = selected.contains.stats.currentHP;
                 detailsPanel.querySelector(".detailsHPMax").innerHTML = selected.contains.stats.maxHP;
                 genBuildabels()
                 genSpawnables()
@@ -399,13 +406,14 @@ function startTurn() {
 function endTurn(){
     console.log("Turn ended.")
     if (!player.turn) return;
-    chatSocket.send(JSON.stringify({
-        'type':'endTurn',
-        'player': player.user
-    }))
     player.gold += player.gains
     playerBarTop.querySelector(".gold").textContent = player.team == 'top' ? player.gold : player2.gold
     playerBarBottom.querySelector(".gold").textContent = player.team == 'bottom' ? player.gold : player2.gold
+    chatSocket.send(JSON.stringify({
+        'type':'endTurn',
+        'player': player.user,
+        'gold': player.gold
+    }))
 }
 
 // get list of buildables for "selected" "Building"
@@ -470,6 +478,8 @@ function hilight(range) {
 
 // remove all hilights from all board tiles
 function removeHilight(){
+    skillContainer.style.left = '-50%'
+    skillContainer.innerHTML = ''
     board.forEach(e => {
         e.button.classList.remove("inRange")
         e.button.classList.remove("toAttack")
@@ -489,14 +499,19 @@ board.forEach(e => {
 // regen board to apply changes
 function regenBoard(){
     //console.log("regenBoard")
+    player.cities = 0
     board.forEach(e => {
         if(e.contains != null){
             if(!e.button.firstChild){
                 e.button.appendChild(e.contains.DOM)
             }
-            e.button.querySelector(".HP").text = e.contains.currentHP;          
+            e.button.querySelector(".HPLabel").text = e.contains.stats.currentHP;
+            e.button.querySelector(".ATKLabel").text = e.contains.stats.ATK; 
+            if (e.contains.Type == 'Building' && e.contains.owner === player.team) player.cities += 1
         }
     });
+
+    recalcGains()
 
     playerBarTop.querySelector(".gold").textContent = player.team == 'top' ? player.gold : player2.gold
     playerBarBottom.querySelector(".gold").textContent = player.team == 'bottom' ? player.gold : player2.gold
@@ -554,18 +569,38 @@ function recalcGains() {
     let castlesTop = board.filter(e => e.contains!=null && e.contains.owner == player.team && e.contains.Type == 'Building')
     player.gains = 0;
     castlesTop.forEach(e => {
+        player.gains += e.contains.gains.base
         player.gains += e.contains.gains.gold
     })
 
     let castlesBottom = board.filter(e => e.contains!=null && e.contains.owner == player2.team && e.contains.Type == 'Building')
     player2.gains = 0;
     castlesBottom.forEach(e => {
+        player2.gains += e.contains.gains.base
         player2.gains += e.contains.gains.gold
     })
 
     playerBarTop.querySelector(".goldGains").textContent = "+".concat(player.team == 'top' ? player.gains : player2.gains)
     playerBarBottom.querySelector(".goldGains").textContent = "+".concat(player.team == 'bottom' ? player.gains : player2.gains)
 }
+
+function calcFunction(x) {
+    // Ensure x is greater than 0
+    if (x <= 0) {
+      return undefined; // or handle appropriately based on your requirements
+    }
+  
+    // When x is between 0 and 3 (inclusive), set y to 1
+    if (x <= 3) {
+      return 1;
+    }
+  
+    // When x is greater than 3, make y approach 0 exponentially
+    const exponentialPart = Math.exp((-x - 3)); // Exponential decay
+    const y = exponentialPart;
+  
+    return y;
+  }
 
 // buy "Pawn"'s(units) from the "Building"'s building panel
 function buyUnit(e) {
@@ -608,6 +643,14 @@ function createUnit(statGains, unitName){
         console.error(`Class '${unitName}' not found`);
         return 0
     }
+}
+
+function useSkill(e) {
+    if (!player.turn) return
+    console.log("skill used")
+    e.skill(selected)
+    skillContainer.style.left = '-50%'
+    skillContainer.innerHTML = ''
 }
 
 let player2Proxy = new Proxy(player2, {

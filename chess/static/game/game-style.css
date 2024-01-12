@@ -122,26 +122,59 @@
     
 }
 
+.skillContainer {
+    position: absolute;
+    transform: translate(50%, 50%);
+    top: 50%;
+    left: -50%;
+    z-index: -99;
+    border-radius: 15px;
+    border: 1px solid gray;
+    width: 55px;
+    height: 55px;
+}
+
 .inRange {
     background-color: aqua;
 }
 
 .ATK {
     position: absolute;
-    top: 10%;
-    left: 10%;
+    top: 5%;
+    left: 7px;
     margin-right: -50%;
     transform: translate(-50%, 5%);
     pointer-events: none;
+    font-weight: bolder;
+    z-index: 98;
 }
 
 .HP {
     position: absolute;
-    top: 10%;
-    right: 15%;
-    margin-right: -45%;
-    transform: translate(-100%, 5%);
+    top: 5%;
+    right: 5px;
+    margin-right: 0;
+    transform: translate(50%, 5%);
     pointer-events: none;
+    font-weight: bolder;
+    color: black;
+    z-index: 98;
+}
+
+.HPIcon {
+    width: 20px;
+    height: 20px;
+    right: 7px;
+    top: 70%;
+    z-index: 98;
+}
+
+.ATKIcon {
+    width: 10px;
+    height: 28px;
+    left: 3px;
+    top: 55%;
+    z-index: 98;
 }
 
 .toAttack {
@@ -174,6 +207,7 @@
     /* margin-right: -50%; */
     transform: translate(-53%, -50%);
     pointer-events: none;
+    z-index: 10;
 }
 
 .Container {

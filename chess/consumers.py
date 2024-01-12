@@ -11,38 +11,126 @@ p_board = {}
 
 @database_sync_to_async
 def get_game(game_id):
-    # Synchronous database query
-    return Games.objects.get(id=game_id)
+    return Games.objects.get(id = game_id)
+
+@database_sync_to_async
+def get_lobbyID(id_lobby):
+    lobby = Lobbies.objects.get(id = id_lobby)
+    host_id = lobby.id_host.id if lobby.id_host else None
+    player_id = lobby.id_player.id if lobby.id_player else None
+    return {'host': host_id, 'player': player_id, 'lobby': lobby}
+
+@database_sync_to_async
+def get_playerID(id_player):
+    return User.objects.get(id = id_player)
+
 @database_sync_to_async
 def get_lobby(game):
     lobby = Lobbies.objects.get(id_game = game)
     host_username = lobby.id_host.username if lobby.id_host else None
     player_username = lobby.id_player.username if lobby.id_player else None
     return {'host': host_username, 'player': player_username}
+
 @database_sync_to_async
 def remove_game(ID):
     Games.objects.filter(id=ID).delete()
 
-class LobbyConsumer(WebsocketConsumer):
+@database_sync_to_async
+def remove_lobby(ID):
+    print("removed the lobby")
+    Lobbies.objects.filter(id=ID).delete()
+
+class LobbiesConsumer(WebsocketConsumer):
     def connect(self):
         self.accept()
         self.send(text_data=json.dumps({
             "type": "start",}))
     def disconnect(self, close_code):
-        self.disconnect()
+        pass
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        host = User.objects.get(id = data["host"])
         data_type = data["type"]
+
         if(data_type == "createLobby"):
+            host = User.objects.get(id = data["host"])  
             newGame = Games()
             newGame.save()
             newLobby = Lobbies(id_game = newGame, id_host = host)
             newLobby.save()
-            self.send(text_data=json.dumps({"type": "createLobby", "host": host.id}))
+            self.send(text_data=json.dumps({"type": "createLobby", "host": host.id, 'lobby': newLobby.id}))
 
-class GameConsumer(AsyncWebsocketConsumer):  
+        if(data_type == "getLobbies"):
+            lobbies = {}
+
+            for lobby in Lobbies.objects.all():
+                lobbies[lobby.id] = {
+                    'host': {
+                        'id': lobby.id_host.id,
+                        'username': lobby.id_host.username,
+                    },
+                    'player': {
+                        'id': lobby.id_player.id if lobby.id_player else None,
+                        'username': lobby.id_player.username if lobby.id_player else None,
+                    },
+                    'game': lobby.id_game.id,
+                }
+
+            self.send(text_data=json.dumps({"type": "lobbyList", "lobbyList": lobbies}))
+
+class LobbyConsumer(AsyncWebsocketConsumer):
+    @database_sync_to_async
+    def join_lobby(self, lobby, player):
+        lobby.id_player = player
+        lobby.save()
+    
+    @database_sync_to_async
+    def leave_lobby(self, lobby, player):
+        lobby.id_player = None
+        lobby.save()
+
+    @database_sync_to_async
+    def change_host(self, lobby, player):
+        lobby.id_player = None
+        lobby.id_host = player
+        lobby.save()
+
+    async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]["lobby_id"]
+        self.room_group_name = f"lobby_{self.room_name}"
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+        await self.send(text_data=json.dumps({"type":"connected"}))
+
+    async def disconnect(self, close_code, player = None):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+    async def receive(self, text_data=None, bytes_data=None):
+        data = json.loads(text_data)
+        data_type = data["type"]
+
+        if(data_type == "joinLobby"):
+            id_player = data['player']
+            id_lobby = self.room_name
+            lobby = await get_lobbyID(id_lobby)
+            player = await get_playerID(id_player)
+            if (lobby['player'] == id_player): await self.send(text_data=json.dumps({"type": "newJoin", "player": player.username})); return
+            if (lobby['player'] == None and lobby['host'] != id_player): 
+                await self.join_lobby(lobby['lobby'], player)
+                await self.send(text_data=json.dumps({"type": "newJoin", "player": player.username}))
+            elif (lobby['player'] != None and lobby['host'] != None): await self.send(text_data=json.dumps({"type": "lobbyFull"}))   
+
+        if(data_type == "leaveLobby"):
+            id_player = data['player']
+            id_lobby = self.room_name
+            lobby = await get_lobbyID(id_lobby)
+
+            player = await get_playerID(id_player)
+            if (lobby['player'] == id_player): await self.leave_lobby(lobby['lobby'], player)
+            elif (lobby['host'] == id_player and lobby['player'] == None): await remove_lobby(self.room_name)
+            elif (lobby['host'] == id_player): await self.change_host(lobby, player)
+            await self.send(text_data=json.dumps({"type": "leftLobby"}))
+
+class GameConsumer(AsyncWebsocketConsumer): 
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["game_id"]
         self.room_group_name = f"game_{self.room_name}"
@@ -67,11 +155,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             p_board[self.room_group_name][lobby['player']]['name'] = player
             p_board[self.room_group_name][lobby['player']]['gold'] = 100
 
-        await self.send(text_data=json.dumps({"type":"connected", "top": p_board[self.room_group_name][lobby['host']]['name'], 'bottom': p_board[self.room_group_name][lobby['player']]['name'], 
+        await self.channel_layer.group_send(
+                self.room_group_name, {"type":"connected", "top": p_board[self.room_group_name][lobby['host']]['name'], 'bottom': p_board[self.room_group_name][lobby['player']]['name'], 
                                               'turn': p_board[self.room_group_name]['turn'],
                                               'gold':{ p_board[self.room_group_name][lobby['host']]['name']: p_board[self.room_group_name][lobby['host']]['gold'],
-                                                      p_board[self.room_group_name][lobby['player']]['name']: p_board[self.room_group_name][lobby['player']]['gold'] } }))
+                                                      p_board[self.room_group_name][lobby['player']]['name']: p_board[self.room_group_name][lobby['player']]['gold'] } })
         
+        
+    async def connected(self, event):
+        await self.send(text_data=json.dumps(event))
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
@@ -102,6 +195,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if(data_type == "endTurn"):
             global p_board
             player = data["player"]
+            p_board[self.room_group_name][player]['gold'] = data['gold']
             await self.channel_layer.group_send(
                 self.room_group_name, {"type": "endTurn", "player": player})
         
@@ -111,7 +205,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                 self.room_group_name, {"type": "start", "id": id})
 
         if(data_type == "clear"):
-            global p_board
             p_board = {}
             print("Cleared all boards!")
 

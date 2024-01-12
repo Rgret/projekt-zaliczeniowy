@@ -17,10 +17,10 @@ class Entity {
     winCon = false
     Die = {gold: baseKill.gold}
     stats = {
-        range: 0,
-        maxHP: 10,
-        ATK: 5,
-        currentHP: 10,
+        range: baseStats[this.Name].range,
+        maxHP: baseStats[this.Name].maxHP,
+        ATK: baseStats[this.Name].ATK,
+        currentHP: baseStats[this.Name].maxHP,
     }
     relevantStats = {owner: this.owner,
         stats: this.stats,
@@ -40,15 +40,27 @@ class Entity {
         this.IMG = img;
 
         let atk = document.createElement('a');
-        atk.className += "ATK";
+        atk.className += "ATKLabel";
+        atk.classList += " ATK"
         atk.text = this.stats.ATK;
         this.atkLabel = atk
+        let atkIcon = document.createElement('img');
+        atkIcon.className += "ATK";
+        atkIcon.classList += " ATKIcon";
+        atkIcon.src = window.staticUrls.atk_icon
 
         let hp = document.createElement('a');
-        hp.className += "HP";
+        hp.className += "HPLabel";
+        hp.classList += " HP"
         hp.text = this.stats.currentHP;
         this.hpLabel = hp
+        let hpIcon = document.createElement('img');
+        hpIcon.className += "HP";
+        hpIcon.classList += " HPIcon";
+        hpIcon.src = window.staticUrls.hp_icon
 
+        container.appendChild(hpIcon)
+        container.appendChild(atkIcon)
         container.appendChild(img)
         container.appendChild(atk)
         container.appendChild(hp)
@@ -59,9 +71,6 @@ class Entity {
     }
     get range() {
         return this.stats.range
-    }
-    get currentHP() {
-        return this.stats.currentHP
     }
     set currentHP(value) {
         this.stats.currentHP = value
@@ -125,11 +134,70 @@ class Pawn extends Entity{
     Type = "Pawn"
     Name = "Pawn"
 
+    constructor(options = {}){
+        super(options)
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = crossSelector(tile, true, {attackOnly: !this.attacked});
+    }
+    attackPattern(tile, selected = null) {
+        return tile
+    }
+}
+
+// 
+class Archer extends Entity{
+    Type = "Pawn"
+    Name = "Archer"
+
+    constructor(options = {}){
+        super(options)
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = selectInRange(tile, false, {attackOnly: !this.attacked, range: 5});
+    }
+    attackPattern(tile, selected = null) {
+        return tile
+    }
+}
+
+class Cavalry extends Entity{
+    Type = "Pawn"
+    Name = "Cavalry"
+
+    constructor(options = {}){
+        super(options)
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = selectInRange(tile, true, {attackOnly: !this.attacked, range: 2});
+    }
+    attackPattern(tile, selected = null) {
+        return tile
+    }
+}
+
+// 
+class Settler extends Entity{
+    Type = "Pawn"
+    Name = "Settler"
+
     stats = {
-        range: baseStats.Pawn.range,
-        maxHP: baseStats.Pawn.maxHP,
-        ATK: baseStats.Pawn.ATK,
-        currentHP: baseStats.Pawn.maxHP,
+        range: baseStats.Settler.range,
+        maxHP: baseStats.Settler.maxHP,
+        ATK: baseStats.Settler.ATK,
+        currentHP: baseStats.Settler.maxHP,
     }
 
     constructor(options = {}){
@@ -139,14 +207,34 @@ class Pawn extends Entity{
     }
 
     InitRange(tile) {
-        this.inRange = selectInRange(tile, this.stats.range, true, {movable: !this.moved});
-        this.attkRange = crossSelector(tile, true, {attackOnly: !this.attacked});
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = {};
     }
     attackPattern(tile, selected = null) {
-        return tile
+        return {}
+    }
+    skill(tile) {
+        if (getNeighbours(tile).some(e => e.contains === 'Building')) return;
+        board[tile.id].contains = null
+        board[tile.id].button.innerHTML = ''
+        tile.contains = new Castle({owner: this.owner})
+        player.cities += 1
+        regenBoard()
+        sendBoard()
+        selected = undefined
+        removeHilight()
+        delete this
+    }
+    skillIcon() {
+        let img = document.createElement('img')
+        img.src = "#"
+        img.style.width = '50px'
+        img.style.height = '50px'
+        img.classList += " skillIcon"
+        img.addEventListener('click', e => {useSkill(this)})
+        return img
     }
 }
-
 
 // for now the only building
 // represents player's "capital"
@@ -171,12 +259,13 @@ class Castle extends Entity {
 
     statGains = {ATK: 0, maxHP: 0,}
     gains = {
-        gold: 30
+        base: Math.round(30 / player.cities),
+        gold: 0
     }
     constructor(options = {}){
         super(options)
         Object.assign(this, options);
-        this.IMG.src = ""
+        this.IMG.src = allUnits.Castle.IMG[this.owner]
         this.DOM.classList += " Castle"
     }
     getSpawnablesDOM(player) {
