@@ -3,8 +3,7 @@
 // needs to be inherited by all in game entities
 class Entity {
     Type = null
-    Name = "Pawn"
-    owner = null
+    Name = null
     DOM = null
     IMG = null
     atkLabel = null
@@ -16,12 +15,7 @@ class Entity {
     friendlyFire = false
     winCon = false
     Die = {gold: baseKill.gold}
-    stats = {
-        range: baseStats[this.Name].range,
-        maxHP: baseStats[this.Name].maxHP,
-        ATK: baseStats[this.Name].ATK,
-        currentHP: baseStats[this.Name].maxHP,
-    }
+    stats = null
     relevantStats = {owner: this.owner,
         stats: this.stats,
         enemy: this.enemy,
@@ -29,12 +23,13 @@ class Entity {
         attacked: this.attacked,
     }
     constructor(options = {}){
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         let container = document.createElement('div')
         container.className += "image"
 
         let img = document.createElement('img');
-        img.src = allUnits[this.Name].IMG[this.owner]
+        img.src = allUnits[this.constructor.name].IMG[this.owner]
         img.classList += " image"
         img.classList += " " + this.owner
         this.IMG = img;
@@ -72,46 +67,19 @@ class Entity {
     get range() {
         return this.stats.range
     }
-    set currentHP(value) {
-        this.stats.currentHP = value
-    }
-    set owner(value){
-        this.owner = value
-    }
-    get owner() {
-        return this.owner
-    }
-    get moved() {
-        return this.moved
-    }
-    set moved(value) {
-        this.moved = value
-    }
-    get attacked() {
-        return this.attacked
-    }
-    set attacked(value) {
-        this.attacked = value
-    }
-    get inRange() {
-        return this.inRange;
-    }
-    get attkRange() {
-        return this.attkRange;
-    }
-    get hpLabel() {
-        return this.hpLabel
-    }
-    get friendlyFire() {
-        return this.friendlyFire;
-    }
     get DOM() {
         this.hpLabel.text = this.stats.currentHP;
         this.atkLabel.text = this.stats.ATK;
         return this.DOM
     }
-    get Type(){
-        return this.Type
+    initializeStats() {
+        return {
+            range: baseStats[this.constructor.name].range,
+            maxHP: baseStats[this.constructor.name].maxHP,
+            ATK: baseStats[this.constructor.name].ATK,
+            currentHP: baseStats[this.constructor.name].maxHP,
+            regen: baseStats[this.constructor.name].regen,
+        };
     }
     hit(dmg){
         this.stats.currentHP -= dmg;
@@ -125,6 +93,7 @@ class Entity {
             enemy: this.enemy,
             moved: this.moved,
             attacked: this.attacked,
+            regen: this.regen,
         }
     }
 }
@@ -136,13 +105,54 @@ class Pawn extends Entity{
 
     constructor(options = {}){
         super(options)
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         this.getRelevant()
     }
 
     InitRange(tile) {
         this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
-        this.attkRange = crossSelector(tile, true, {attackOnly: !this.attacked});
+        this.attkRange = rangeSelector(tile, true, {attackOnly: !this.attacked, range: 2});
+    }
+    attackPattern(tile, selected = null) {
+        return tile
+    }
+}
+
+class Priest extends Entity{
+    Type = "Pawn"
+    Name = "Priest"
+
+    constructor(options = {}){
+        super(options)
+        this.stats = this.initializeStats();
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = lineSelector(tile, true, {attackOnly: !this.attacked});
+    }
+    attackPattern(tile, selected = null) {
+        return directionalLinestSelector(tile, selected)
+    }
+}
+
+class Knight extends Entity{ 
+    Type = "Pawn"
+    Name = "Knight"
+
+    constructor(options = {}){
+        super(options)
+        this.stats = this.initializeStats();
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
+        this.attkRange = rangeSelector(tile, true, {attackOnly: !this.attacked, range: 4});
     }
     attackPattern(tile, selected = null) {
         return tile
@@ -156,16 +166,18 @@ class Archer extends Entity{
 
     constructor(options = {}){
         super(options)
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         this.getRelevant()
     }
 
     InitRange(tile) {
         this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
-        this.attkRange = selectInRange(tile, false, {attackOnly: !this.attacked, range: 5});
+        this.attkRange = rangeSelector(tile, this.moved, {attackOnly: !this.attacked, range: 13});
     }
     attackPattern(tile, selected = null) {
-        return tile
+        if (tile.contains == null) return
+        return rangeSelector(tile, true, {attackOnly: !this.attacked, range: 2, onSelf: true});
     }
 }
 
@@ -175,13 +187,52 @@ class Cavalry extends Entity{
 
     constructor(options = {}){
         super(options)
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         this.getRelevant()
     }
 
     InitRange(tile) {
-        this.inRange = movementRange(tile, this.stats.range, true, {movable: !this.moved});
-        this.attkRange = selectInRange(tile, true, {attackOnly: !this.attacked, range: 2});
+        let list1 = lineSelector(tile, true, {movable: !this.moved})
+        let list2 = rangeSelector(tile, true, {movable: !this.moved, range: 5});
+
+        const combinedList = list1.concat(list2);
+
+        const uniqueList = combinedList.filter((item, index) => {
+            return combinedList.indexOf(item) === index;
+        });
+
+        this.inRange = uniqueList
+        this.attkRange = rangeSelector(tile, this.moved, {attackOnly: !this.attacked, range: 5});
+    }
+    attackPattern(tile, selected = null) {
+        return tile
+    }
+}
+
+class HCavalry extends Entity{
+    Type = "Pawn"
+    Name = "HCavalry"
+
+    constructor(options = {}){
+        super(options)
+        this.stats = this.initializeStats();
+        Object.assign(this, options);
+        this.getRelevant()
+    }
+
+    InitRange(tile) {
+        let list1 = lineSelector(tile, true, {movable: !this.moved})
+        let list2 = rangeSelector(tile, true, {movable: !this.moved, range: 5});
+
+        const combinedList = list1.concat(list2);
+
+        const uniqueList = combinedList.filter((item, index) => {
+            return combinedList.indexOf(item) === index;
+        });
+
+        this.inRange = uniqueList
+        this.attkRange = rangeSelector(tile, this.moved, {attackOnly: !this.attacked, range: 5});
     }
     attackPattern(tile, selected = null) {
         return tile
@@ -193,15 +244,9 @@ class Settler extends Entity{
     Type = "Pawn"
     Name = "Settler"
 
-    stats = {
-        range: baseStats.Settler.range,
-        maxHP: baseStats.Settler.maxHP,
-        ATK: baseStats.Settler.ATK,
-        currentHP: baseStats.Settler.maxHP,
-    }
-
     constructor(options = {}){
         super(options)
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         this.getRelevant()
     }
@@ -227,7 +272,7 @@ class Settler extends Entity{
     }
     skillIcon() {
         let img = document.createElement('img')
-        img.src = "#"
+        img.src = window.staticUrls.castle
         img.style.width = '50px'
         img.style.height = '50px'
         img.classList += " skillIcon"
@@ -248,6 +293,7 @@ class Castle extends Entity {
         stats: this.stats,
         enemy: this.enemy,
         moved: this.moved,
+        regen: this.regen,
         attacked: this.attacked,
         gains: this.gains,
         Upgardes: this.Upgrades,
@@ -256,14 +302,16 @@ class Castle extends Entity {
 
     Upgrades = baseUpgrades
     Units = baseUnits
+    Unlocks = []
 
-    statGains = {ATK: 0, maxHP: 0,}
+    statGains = {ATK: 0, maxHP: 0, regen: 0}
     gains = {
         base: Math.round(30 / player.cities),
         gold: 0
     }
     constructor(options = {}){
         super(options)
+        this.stats = this.initializeStats();
         Object.assign(this, options);
         this.IMG.src = allUnits.Castle.IMG[this.owner]
         this.DOM.classList += " Castle"
@@ -353,6 +401,7 @@ class Castle extends Entity {
             statGains: this.statGains,
             Upgrades: this.Upgrades,
             Units: this.Units,
+            Unlocks: this.Unlocks,
         }
     }
 }

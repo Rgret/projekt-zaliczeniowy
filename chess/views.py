@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout  # do wylogowania
 from django.shortcuts import redirect
 from django.conf import settings
+from django.db import models
 import os
 
 # Create your views here.
@@ -13,6 +14,7 @@ def index(request):
     return redirect('home')
 
 def game(request, id):
+    if not Games.objects.filter(id=id).exists(): return render(request, '404.html', {})
     images_folder = os.path.join(settings.BASE_DIR, 'chess', 'static', 'game', 'images')
     image_files = [f for f in os.listdir(images_folder) if os.path.isfile(os.path.join(images_folder, f))]
     image_list = []

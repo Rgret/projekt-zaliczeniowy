@@ -1,3 +1,7 @@
+body {
+    overflow: hidden;
+}
+
 .board-container {
     position: absolute;
     top: 50%;
@@ -7,6 +11,10 @@
     height: 700px;
     width: 700px;
     outline: 1px solid black;
+}
+
+.board-container > * {
+    overflow: visible;
 }
 
 .turnNotif {
@@ -178,11 +186,11 @@
 }
 
 .toAttack {
-    background-color: rgba(255, 174, 120, 0.5);
+    background-color: red;   
 }
 
 .attackOnly {
-    background-color: red;
+    background-color: rgba(255, 174, 120, 0.5);
 }
 
 .spawnableTile {

@@ -195,10 +195,11 @@ chatSocket.onmessage = function(e) {
         // web socket event when a player ends their turn
         // it sends the team that ended their turn
         case ("newTurn"):
-            turn += 1
             console.log("New turn message: ")
             console.log(data)
             reset_animation('.timer')
+
+            turn = data.turn_nr
             
             if(data.hasTurn == player.team) {
                 player.turn = true;
@@ -222,6 +223,7 @@ chatSocket.onmessage = function(e) {
         case ("regenBoard"):
             // can stay for now
             for( let i = 0; i<board.length; i++ ){
+                turn = data.turn_nr
                 if( data.board[i].contains != null ){
                     let classConstructor = eval(data.board[i].contains.Name)
                     let instance = new classConstructor(data.board[i].contains.relevantStats)
@@ -247,9 +249,9 @@ chatSocket.onmessage = function(e) {
 };
 
 // round timer
-function timer(t){
+function timer(nr){
     if (player.turn) return
-    if (t != turn) return
+    if (nr != turn) return
     chatSocket.send(JSON.stringify({
         'type':'switchTurn',
         'player': player.team
@@ -260,7 +262,6 @@ function timer(t){
 // all code relevant to clicking any tile on the board
 function spaceClick(e) {
     let target = board[e.target.id];
-
     // fill pawns inRange if empty
     // inRange hold a list of tiles and in what range are they
     // ie. in movement or in attack range or both
@@ -279,6 +280,9 @@ function spaceClick(e) {
     // we can't move, or attack if we haven't "selected" a pawn to do that with so we return
     if (selected == undefined) return
 
+    //
+    //if (!player.turn) {removeHilight(); return;}
+
     // check if it has a skill and show skill button
     if (typeof selected.contains.skill === 'function' && !skillContainer.firstChild) {
         skillContainer.appendChild(selected.contains.skillIcon())
@@ -290,8 +294,7 @@ function spaceClick(e) {
     switch (selected.contains.Type) {
         case "Pawn":
             // move
-            if (!player.turn && selected.contains.owner == player.team) return
-            if(target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved){
+            if(player.turn && target.button.classList.contains("inRange") && target != selected && target.contains == null && !selected.contains.moved){
                 let x = document.getElementById(selected.button.id);
 
                 if(x.firstChild) x.removeChild(x.firstChild)
@@ -307,20 +310,22 @@ function spaceClick(e) {
             }
         
             // attack
-            else if(target.button.classList.contains("hoverOverTargets") && player.turn) {
+            else if(player.turn && target.button.classList.contains("hoverOverTargets") && player.turn) {
                 if(selected.contains.attkRange == null) selected.contains.InitRange(selected);
                 let targets = selected.contains.attackPattern(target, selected)
                 //console.log(targets)
                 if(targets.length > 1){
                     targets.forEach(t => {
                         let e = board[t.id];
-                        if(target.contains == null && (target.contains.owner == selected.contains.owner || !selected.contains.friendlyFire)) return;
+                        if(e.contains == null) return;
+                        if(e.contains.owner == selected.contains.owner) return;
+
                         e.contains.hit(selected.contains.stats.ATK)     
                         let hpLabel = e.button.querySelector(".HPLabel")
                         hpLabel.text = e.contains.stats.currentHP
     
                         if(e.contains.stats.currentHP <= 0){
-                            player.gold += target.contains.Die.gold
+                            player.gold += target.contains != null ? target.contains.Die.gold : 0
                             if (e.contains.winCon) player2Proxy.cities = player2.cities - 1;
 
                             delete e.contains
@@ -334,7 +339,7 @@ function spaceClick(e) {
                     hpLabel.text = target.contains.stats.currentHP
     
                     if(target.contains.stats.currentHP <= 0){
-                        player.gold += target.contains.Die.gold
+                        player.gold += target.contains != null ? target.contains.Die.gold : 0
                         if (target.contains.winCon) player2Proxy.cities = player2.cities - 1;
                         delete target.contains
                     }
@@ -396,10 +401,20 @@ function startTurn() {
         if(e.contains){
             if (e.contains.moved) e.contains.moved = false;
             if (e.contains.attacked) e.contains.attacked = false;
+            if ((e.contains.stats.currentHP + e.contains.stats.regen) > e.contains.stats.maxHP) {
+                e.contains.stats.currentHP = e.contains.stats.maxHP
+            }else {e.contains.stats.currentHP += e.contains.stats.regen}
         }
     })
+    regenBoard()
+    sendBoard()
+    setTimeout(e=>{ timer2(turn) }, 34000)
 }
-
+function timer2(t) {
+    if (player.turn == false) return
+    if (turn != t) return
+    endTurn()
+}
 
 // ends the player turn, sends a message to the web socket
 // adds gold for the player depending onthe players buildings and upgrades
@@ -507,7 +522,13 @@ function regenBoard(){
             }
             e.button.querySelector(".HPLabel").text = e.contains.stats.currentHP;
             e.button.querySelector(".ATKLabel").text = e.contains.stats.ATK; 
-            if (e.contains.Type == 'Building' && e.contains.owner === player.team) player.cities += 1
+            if (e.contains.Type == 'Building' && e.contains.owner === player.team) player.cities += 1;
+            e.contains.owner == player.team ? e.button.style.outlineColor = 'green' : e.button.style.outlineColor = 'red'
+            e.button.style.outlineWidth = '2px'
+        }
+        if(e.contains == null) {
+            e.button.style.outlineColor = 'gray'
+            e.button.style.outlineWidth = '1px'
         }
     });
 
@@ -636,6 +657,7 @@ function createUnit(statGains, unitName){
                                 maxHP: base.maxHP + statGains.maxHP,
                                 ATK: base.ATK + statGains.ATK,
                                 currentHP: base.maxHP + statGains.maxHP,
+                                regen: base.regen + statGains.regen,
                             }});
         console.log(instance)
         return instance

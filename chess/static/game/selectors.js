@@ -15,20 +15,6 @@ function movementRange(tile, range, allInRange = false, options = {movable: fals
     return selected
 }
 
-function selectInRange(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false, range: 5}){
-    let selected = []
-    board.forEach(e=>{
-        let distance = (tile.X - e.X)**2 + (tile.Y - e.Y)**2;
-        if (distance <= options.range && (e.id != tile.id || options.onSelf)){
-            if (!tile.contains.attacked){
-                if (e.contains != null && e.contains.owner != tile.contains.owner) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
-                else if (allInRange) selected.push({id: e.id, target: allInRange});
-            }else if (allInRange) selected.push({id: e.id, target: allInRange}); 
-        }
-    });
-    return selected
-}
-
 // change to support multiple board sizes
 // Get nerby tiles 
 // + + +
@@ -48,37 +34,36 @@ function getNeighbours(tile, allInRange = false, options = {movable: false, targ
 // - + -
 // + t +
 // - + -
-function crossSelector(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false}){
+function rangeSelector(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false, range: 2}){
     let selected = []
     board.forEach(e=>{
         let distance = (tile.X - e.X)**2 + (tile.Y - e.Y)**2;
-        if (distance < 2 && (e.id != tile.id || options.onSelf)){
+        if (distance < options.range && (e.id != tile.id || options.onSelf)){
             if (!tile.contains.attacked){
                 if (e.contains != null && e.contains.owner != tile.contains.owner) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
-                else if (allInRange) selected.push({id: e.id, target: allInRange});
-            }else if (allInRange) selected.push({id: e.id, target: allInRange}); 
+                else if (allInRange) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
+            }else if (allInRange) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile}); 
         }
     });
     return selected
 }
 
-//testing directional shit, ignore this
 //- + -
 //+ t +
 //- + -
-function testSelector(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false}) {
+function lineSelector(tile, allInRange = false, options = {movable: false, target: false, attackOnly: false, spawnableTile: false, onSelf: false}) {
     let selected = []
     board.forEach(e => {
         if(e.X == tile.X || e.Y == tile.Y){
             if (!tile.contains.attacked){
                 if (e.contains != null && e.contains.owner != tile.contains.owner) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
-                else if (allInRange) selected.push({id: e.id, target: allInRange});
-            }else if (allInRange) selected.push({id: e.id, target: allInRange}); 
+                else if (allInRange) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile});
+            }else if (allInRange) selected.push({id: e.id, movable: options.movable, target: options.target, attackOnly: options.attackOnly, spawnableTile: options.spawnableTile}); 
         }
     });
     return selected
 }
-function directionalTestSelector(tile, selected) {
+function directionalLinestSelector(tile, selected) {
     let test = {X: tile.X - selected.X, Y: tile.Y - selected.Y}
 
     if (test.X > 0 && test.Y == 0){

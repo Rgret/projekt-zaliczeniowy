@@ -145,6 +145,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             p_board[self.room_group_name][lobby['host']] = {'name': lobby['host'], 'team': 'top', 'gold': 100}
             p_board[self.room_group_name][lobby['player']] = {'name': lobby['player'], 'team': 'bottom', 'gold': 100}
             p_board[self.room_group_name]['turn'] = 'top'
+            p_board[self.room_group_name]['turn_nr'] = 0
         if(not lobby['host'] in p_board[self.room_group_name]):
             host = lobby['host']
             p_board[self.room_group_name][lobby['host']]['name'] = host
@@ -213,9 +214,9 @@ class GameConsumer(AsyncWebsocketConsumer):
             player2 = data["player2"]
             cities = data['cities']
             if cities > 0: return
-            remove_game(self.scope["url_route"]["kwargs"]["game_id"])
             if self.room_group_name in p_board:
                 del p_board[self.room_group_name]
+            remove_game(self.scope["url_route"]["kwargs"]["game_id"])
             await self.channel_layer.group_send(
                 self.room_group_name, {"type": "gameEnd", "winner": player})
             
@@ -250,7 +251,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             player2 = lobby['player']
             await self.send(text_data=json.dumps({"type":"regenBoard", "board": p_board[self.room_group_name]['board'], 
                                                   player: p_board[self.room_group_name][player]['gold'], 
-                                                  player2: p_board[self.room_group_name][player2]['gold']}))
+                                                  player2: p_board[self.room_group_name][player2]['gold'],
+                                                  'turn_nr': p_board[self.room_group_name]['turn_nr']}))
 
     async def regenBoard(self, event):
         board = event["board"]
@@ -260,6 +262,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         p_board[self.room_group_name]['board'] = board
         p_board[self.room_group_name][player]['gold'] = gold
         for key, value in p_board[self.room_group_name].items():
+            if isinstance(value, int): continue
             if 'team' not in value: continue
             if value["name"] == player: continue
             player2 = value['name']
@@ -269,23 +272,25 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def endTurn(self, event):
         global p_board
+        p_board[self.room_group_name]['turn_nr'] += 1
+        turn_nr = p_board[self.room_group_name]['turn_nr']
         player = event["player"]
         playerTeam = p_board[self.room_group_name][player]['team']
         if playerTeam == 'top': p_board[self.room_group_name]['turn'] = 'bottom'
         p_board[self.room_group_name]['turn'] = 'bottom' if playerTeam == 'top' else 'top'
         for key, value in p_board[self.room_group_name].items():
+            if isinstance(value, int): continue
             if 'team' not in value: continue
             if value["team"] == playerTeam: continue
             hasTurn = value['name']
         # Send message to WebSocket
-        await self.send(text_data=json.dumps({"type":"newTurn", 'hasTurn': hasTurn}))
-        #self.channel_layer.group_send(
-        #    self.room_group_name, {"type": "turn_timer", "turn": p_board[self.room_group_name]['turn'], "timer": 15})
+        await self.send(text_data=json.dumps({"type":"newTurn", 'hasTurn': hasTurn, "turn_nr": turn_nr}))
 
     async def askTurn(self, event):
         global p_board
         turn = p_board[self.room_group_name]['turn']
-        await self.send(text_data=json.dumps({"type":"whoseTurn", "turn": turn}))
+        turn_nr = p_board[self.room_group_name]['turn_nr']
+        await self.send(text_data=json.dumps({"type":"whoseTurn", "turn": turn, "turn_nr": turn_nr}))
 
     async def switchTurn(self, event):
         global p_board
