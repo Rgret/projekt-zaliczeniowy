@@ -20,7 +20,8 @@
             {% for lobby in lobbies %}
             
             <div class="lobbyItem" onclick="showLobbyDetails({{lobby}})">
-                Lobby {{ lobby.id }} - Players: {{ lobby.players }}
+                Lobby {{ lobby.lobby_id }} - Host: {{ lobby.host_name }}
+            
             </div>
             {% endfor %}
             <button class="lobbyItem" onclick="createLobby()">Create lobby</button>

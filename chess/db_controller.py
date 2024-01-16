@@ -8,8 +8,12 @@ def get_lobbies_data():
 
     for lobby in lobbies:
         lobby_info = {
-            'id': lobby.id_game.id if lobby.id_game else None,
-            'players': lobby.id_host.id if lobby.id_host else None
+            'lobby_id': lobby.id,
+            'game_id': lobby.id_game.id if lobby.id_game else None,
+            'host_id': lobby.id_host.id if lobby.id_host else None,
+            'host_name': lobby.id_host.username if lobby.id_host else None,
+            'player_id': lobby.id_player.id if lobby.id_player else None,
+            'player_name': lobby.id_player.username if lobby.id_player else None,
         }
         lobbies_data.append(lobby_info)
 

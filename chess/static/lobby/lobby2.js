@@ -6,7 +6,10 @@ const leftPanel = document.getElementById('leftPanel');
 
 
 function showLobbyDetails(lobby) {
-  lobbyDetails.innerHTML = `<h2>lobby: ${lobby.id}</h2><p>Players: ${lobby.players}</p>`;
+  lobbyDetails.innerHTML = `<h2>lobby: ${lobby.lobby_id}</h2>
+  <p>Host: ${lobby.host_name}</p>
+  <p>Player: ${lobby.player_name}</p>
+  `;
   showActionButtons(lobby.id); 
 }
 
@@ -17,10 +20,11 @@ function showActionButtons(lobbyId) {
   // Create buttons dynamically
   const startGameButton = document.createElement('button');
   startGameButton.textContent = 'Start Game';
-  startGameButton.addEventListener('click', () => startGame(lobbyId)); // Pass lobbyId to startGame function
+  startGameButton.addEventListener('click', () => startGame()); // Pass lobbyId to startGame function
 
   const joinLobbyButton = document.createElement('button');
   joinLobbyButton.textContent = 'Join Lobby';
+  joinLobbyButton.addEventListener('click',() => joinLobby())
 
   // Append buttons to the actionButtons div
   actionButtons.appendChild(startGameButton);
