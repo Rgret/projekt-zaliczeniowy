@@ -16,10 +16,7 @@ RUN pip install -r requirements.txt
 
 # Copy the rest of the application code into the container
 COPY . /app/
+RUN echo 'yes' | python3 ./manage.py collectstatic
 
-# Collect static files (customize as needed)
-
-
-# Run Gunicorn (you can replace this with Daphne if you prefer)
-CMD ["python", "manage.py", "runserver"]
-
+# Run Gunicorn
+CMD ["python3", "./manage.py", "runserver"]
