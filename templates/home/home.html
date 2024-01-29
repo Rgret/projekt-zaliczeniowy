@@ -14,6 +14,7 @@
                 <a href="{% url 'user_logout' %}">Wyloguj się</a> <!-- Link do wylogowania dla zalogowanych użytkowników -->
             {% else %}
                 <a href="{% url 'user_login' %}">Zaloguj się</a> <!-- Link do logowania dla niezalogowanych użytkowników -->
+                <a href="{% url 'register' %}">Zarejestruj się</a> <!-- Link do logowania dla niezalogowanych użytkowników -->
             {% endif %}
             <a href="/lobby">Lobby</a>
         </div>
