@@ -20,7 +20,7 @@ def game(request, id):
     image_list = []
     for image in image_files:
         image_list.append({'name': os.path.splitext(image)[0], 'url': "game/images/{0}".format(image)})
-    return render(request, 'game/game.html', {"game_id" : id, 'image_list': image_list})
+    return render(request, 'game/game.html', {"game_id" : id, 'image_list': image_list, 'user': request.user.username})
 
 def lobby(request):
     lobbies = get_lobbies_data()

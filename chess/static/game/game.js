@@ -18,7 +18,7 @@ let id = 0;
 let turn = 0;
 
 // get the user name of the player
-const username = JSON.parse(document.getElementById('username').textContent);
+const username = JSON.parse(document.getElementById('user').textContent);
 
 // change when logging in is possible
 let player = {user: username, team: "bottom", gold: 100, turn: false, cities: 1, gains: 30}
@@ -200,8 +200,7 @@ chatSocket.onmessage = function(e) {
             reset_animation('.timer')
 
             turn = data.turn_nr
-            
-            if(data.hasTurn == player.team) {
+            if(data.hasTurn == player.user) {
                 player.turn = true;
                 turnNotif.querySelector(".user").textContent = player.user
                 reset_animation('.turnNotif')
@@ -211,7 +210,8 @@ chatSocket.onmessage = function(e) {
                 turnNotif.querySelector(".user").textContent = player2.user
                 reset_animation('.turnNotif')
                 // start the timer for 32s
-                setTimeout(e => {timer(turn)} ,32000)
+                let t = turn
+                setTimeout(e => {timer(t)} ,32000)
             }
             // console.log("New Turn: " + data.player)
         break;
@@ -349,6 +349,7 @@ function spaceClick(e) {
                 selected.contains.InitRange(selected)
                 removeHilight()
                 regenBoard()
+                selected = undefined
             }else if(target != selected) { 
                 selected = undefined;
                 removeHilight()
@@ -408,13 +409,8 @@ function startTurn() {
     })
     regenBoard()
     sendBoard()
-    setTimeout(e=>{ timer2(turn) }, 34000)
 }
-function timer2(t) {
-    if (player.turn == false) return
-    if (turn != t) return
-    endTurn()
-}
+
 
 // ends the player turn, sends a message to the web socket
 // adds gold for the player depending onthe players buildings and upgrades

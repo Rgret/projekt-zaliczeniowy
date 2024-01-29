@@ -15,7 +15,7 @@
         };
     </script>
     {{ game_id|json_script:"game_id" }}
-    {{ user.username|json_script:"username" }}
+    {{ user|json_script:"user" }}
     <title>Game {{ game_id }}</title>
 </head>
 <body onload="loaded()">
