@@ -6,11 +6,86 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'game/game-style.css' %}">
+    <script>
+        window.staticUrls = {
+            {% for image in image_list %}
+                "{{ image.name }}": "{% static image.url %}",
+            {% endfor %}
+            "home": "{% url 'home' %}"
+        };
+    </script>
     {{ game_id|json_script:"game_id" }}
     {{ user.username|json_script:"username" }}
     <title>Game {{ game_id }}</title>
 </head>
-<body>
+<body onload="loaded()">
+    <!-- game ended modal !-->
+    <div class="endModal">
+        <p class="endNotif"></p>
+        <button onclick="redirect()">OK</button>
+    </div>
+
+    <!-- loading screen part !-->
+    <div class="loadingScreen">
+        <div class="hexagon" aria-label="Animated hexagonal ripples">
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+            <div class="hexagon__group">
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+                <div class="hexagon__sector"></div>
+            </div>
+        </div>
+        <p aria-label="Loading">Loading</p>
+    </div>
+
+    <!-- game proper !-->
+    <div class="skillContainer"></div>
+    <div class="timer"></div>
+    <div class="unitContainer"><img src="#" class="unitImage"></img></div>
+    <div class="turnNotif"><h3>New Turn!</h3><p class="user"></p></div>
+    <div class="playerBar playerTop"><a class="user"></a><img src="#" class="goldIcon"></img><a class="gold"></a><a class="goldGains"></a></div>
     <div class="grid board-container"></div>
     <div class="detailsPanel">
         <h2 class="detailsName">Building Panel</h2>
@@ -18,12 +93,15 @@
         <p> Atk <a class="detailsAtk"></a></p>
         <p> HP <a class="detailsHPCurrent"></a>/<a class="detailsHPMax"></a></p>
         <hr>
-        <div class="buildingMenu"></div>
+        <div class="unitsMenu"></div>
         <hr>
+        <div class="buildingMenu"></div>
     </div>
+    <div class="playerBar playerBottom"><img src="#" class="goldIcon"></img><a class="gold"></a><a class="goldGains"></a><a class="user"></a></div>
     <button class="endTurn" onclick="endTurn()">End Turn</button>
     <script src="{% static 'game/game.js' %}"></script>
     <script src="{% static 'game/classes.js' %}"></script>
     <script src="{% static 'game/selectors.js' %}"></script>
+    <script src="{% static 'game/base.js' %}"></script>
 </body>
 </html>
