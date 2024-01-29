@@ -65,6 +65,7 @@ class LobbiesConsumer(WebsocketConsumer):
 
             for lobby in Lobbies.objects.all():
                 lobbies[lobby.id] = {
+                    'id': lobby.id,
                     'host': {
                         'id': lobby.id_host.id,
                         'username': lobby.id_host.username,
@@ -91,8 +92,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def change_host(self, lobby, player):
-        lobby.id_player = None
+        player = lobby.id_player
         lobby.id_host = player
+        lobby.id_player = None
         lobby.save()
 
     async def connect(self):
@@ -113,22 +115,33 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             id_lobby = self.room_name
             lobby = await get_lobbyID(id_lobby)
             player = await get_playerID(id_player)
-            if (lobby['player'] == id_player): await self.send(text_data=json.dumps({"type": "newJoin", "player": player.username})); return
+            if (lobby['player'] == id_player): await self.channel_layer.group_send(self.room_group_name, {"type": "newJoin", "player": player.username}); return
             if (lobby['player'] == None and lobby['host'] != id_player): 
                 await self.join_lobby(lobby['lobby'], player)
-                await self.send(text_data=json.dumps({"type": "newJoin", "player": player.username}))
+                await self.channel_layer.group_send(self.room_group_name, {"type": "newJoin", "player": player.username})
             elif (lobby['player'] != None and lobby['host'] != None): await self.send(text_data=json.dumps({"type": "lobbyFull"}))   
 
         if(data_type == "leaveLobby"):
             id_player = data['player']
             id_lobby = self.room_name
             lobby = await get_lobbyID(id_lobby)
-
             player = await get_playerID(id_player)
             if (lobby['player'] == id_player): await self.leave_lobby(lobby['lobby'], player)
             elif (lobby['host'] == id_player and lobby['player'] == None): await remove_lobby(self.room_name)
-            elif (lobby['host'] == id_player): await self.change_host(lobby, player)
-            await self.send(text_data=json.dumps({"type": "leftLobby"}))
+            elif (lobby['host'] == id_player): await self.change_host(lobby['lobby'], player)
+            await self.channel_layer.group_send(self.room_group_name, {"type": "leftLobby", "player_id": id_player})
+
+        if(data_type == "startGame"):
+            await self.channel_layer.group_send(self.room_group_name, {"type": "startGame", "game": data['game']})
+
+    async def newJoin(self, event):
+        await self.send(text_data=json.dumps({"type":"newJoin", "player": event['player']}))
+
+    async def startGame(self, event):
+        await self.send(text_data=json.dumps({"type": "startGame", "game": event['game']}))
+        
+    async def leftLobby(self, event):
+        await self.send(text_data=json.dumps({"type": "leftLobby", "player_id": event['player_id']}))
 
 class GameConsumer(AsyncWebsocketConsumer): 
     async def connect(self):

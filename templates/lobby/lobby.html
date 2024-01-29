@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lobby</title>
     <link rel="stylesheet" href="{% static 'lobby/lobby-style.css' %}">
+    {{ user.id|json_script:"id" }}
    <style ></style>
 </head>
 <body>
@@ -16,14 +17,7 @@
         <button id="toggleButton" onclick="togglePanel()">Toggle</button>
         <div id="lobbyList">
 
-            <!-- Lobby items will be dynamically added here -->
-            {% for lobby in lobbies %}
             
-            <div class="lobbyItem" onclick="showLobbyDetails({{lobby}})">
-                Lobby {{ lobby.lobby_id }} - Host: {{ lobby.host_name }}
-            
-            </div>
-            {% endfor %}
             <button class="lobbyItem" onclick="createLobby()">Create lobby</button>
         </div>
     </div>
